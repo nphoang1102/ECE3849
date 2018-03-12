@@ -1,0 +1,6 @@
+.*
+!/.gitignore
+RemoteSystemsTempFiles/
+Debug/
+*.cmd
+targetConfigs/
