@@ -48,12 +48,28 @@ void ButtonInit(void)
     GPIOPinTypeGPIOInput(GPIO_PORTJ_BASE, GPIO_PIN_0 | GPIO_PIN_1);
     GPIOPadConfigSet(GPIO_PORTJ_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
+    // GPIO PH1 = EK-TM4C1294XL S1
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOH);
+    GPIOPinTypeGPIOInput(GPIO_PORTH_BASE, GPIO_PIN_1);
+    GPIOPadConfigSet(GPIO_PORTH_BASE, GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
+
+    // GPIO PK6 = EK-TM4C1294XL S2
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOK);
+    GPIOPinTypeGPIOInput(GPIO_PORTK_BASE, GPIO_PIN_6);
+    GPIOPadConfigSet(GPIO_PORTK_BASE, GPIO_PIN_6, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
+
     // analog input AIN13, at GPIO PD2 = BoosterPack Joystick HOR(X)
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
     GPIOPinTypeADC(GPIO_PORTD_BASE, GPIO_PIN_2);
+
     // analog input AIN17, at GPIO PK1 = BoosterPack Joystick VER(Y)
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOK);
     GPIOPinTypeADC(GPIO_PORTK_BASE, GPIO_PIN_1);
+
+    // GPIO PD4 = EK-TM4C1294XL Joystick Select
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
+    GPIOPinTypeGPIOInput(GPIO_PORTD_BASE, GPIO_PIN_4);
+    GPIOPadConfigSet(GPIO_PORTD_BASE, GPIO_PIN_4, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
     // initialize ADC0 peripheral
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
@@ -77,16 +93,17 @@ void ButtonDebounce(uint32_t buttons)
 	static int32_t state[BUTTON_COUNT]; // button state: 0 = released
 									    // BUTTON_PRESSED_STATE = pressed
 									    // in between = previous state
-	for (i = 0; i < BUTTON_COUNT; i++) {
+
+	for (i = 0; i < BUTTON_COUNT; i++) { // go through all 5 buttons together every ISR
 		mask = 1 << i;
-		if (buttons & mask) {
+		if (buttons & mask) { // when the button is not pressed
 			state[i] += BUTTON_STATE_INCREMENT;
 			if (state[i] >= BUTTON_PRESSED_STATE) {
 				state[i] = BUTTON_PRESSED_STATE;
 				gButtons |= mask; // update debounced button state
 			}
 		}
-		else {
+		else { // when the button is pressed
 			state[i] -= BUTTON_STATE_DECREMENT;
 			if (state[i] <= 0) {
 				state[i] = 0;
@@ -144,7 +161,10 @@ void ButtonISR(void) {
 
     // read hardware button state
     uint32_t gpio_buttons =
-            ~GPIOPinRead(GPIO_PORTJ_BASE, 0xff) & (GPIO_PIN_1 | GPIO_PIN_0); // EK-TM4C1294XL buttons in positions 0 and 1
+            ~GPIOPinRead(GPIO_PORTJ_BASE, 0xff) & (GPIO_PIN_1 | GPIO_PIN_0) // EK-TM4C1294XL buttons in positions 0 and 1
+            | ((~GPIOPinRead(GPIO_PORTH_BASE, 0xff) & (GPIO_PIN_1)) << 1) // S1
+            | ((~GPIOPinRead(GPIO_PORTK_BASE, 0xff) & (GPIO_PIN_6)) >> 3) // S2
+            | ((~GPIOPinRead(GPIO_PORTD_BASE, 0xff) & (GPIO_PIN_4))); // Select
 
     uint32_t old_buttons = gButtons;    // save previous button state
     ButtonDebounce(gpio_buttons);       // Run the button debouncer. The result is in gButtons.
@@ -157,6 +177,9 @@ void ButtonISR(void) {
 
     if (presses & 1) { // EK-TM4C1294XL button 1 pressed
         running = !running;
+    }
+    if (presses & 2) {
+        gTime = 0;
     }
 
     if (running) {
