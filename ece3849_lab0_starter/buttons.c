@@ -48,12 +48,12 @@ void ButtonInit(void)
     GPIOPinTypeGPIOInput(GPIO_PORTJ_BASE, GPIO_PIN_0 | GPIO_PIN_1);
     GPIOPadConfigSet(GPIO_PORTJ_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
-    // GPIO PH1 = EK-TM4C1294XL S1
+    // GPIO PH1 = BoosterPack button S1
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOH);
     GPIOPinTypeGPIOInput(GPIO_PORTH_BASE, GPIO_PIN_1);
     GPIOPadConfigSet(GPIO_PORTH_BASE, GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
-    // GPIO PK6 = EK-TM4C1294XL S2
+    // GPIO PK6 = BoosterPack button S2
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOK);
     GPIOPinTypeGPIOInput(GPIO_PORTK_BASE, GPIO_PIN_6);
     GPIOPadConfigSet(GPIO_PORTK_BASE, GPIO_PIN_6, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
@@ -66,7 +66,7 @@ void ButtonInit(void)
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOK);
     GPIOPinTypeADC(GPIO_PORTK_BASE, GPIO_PIN_1);
 
-    // GPIO PD4 = EK-TM4C1294XL Joystick Select
+    // GPIO PD4 = BoosterPack Joystick Select button
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
     GPIOPinTypeGPIOInput(GPIO_PORTD_BASE, GPIO_PIN_4);
     GPIOPadConfigSet(GPIO_PORTD_BASE, GPIO_PIN_4, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
@@ -94,16 +94,21 @@ void ButtonDebounce(uint32_t buttons)
 									    // BUTTON_PRESSED_STATE = pressed
 									    // in between = previous state
 
-	for (i = 0; i < BUTTON_COUNT; i++) { // go through all 5 buttons together every ISR
+    // Go through and check all 5 buttons for debounce together every ISR
+	for (i = 0; i < BUTTON_COUNT; i++) { 
 		mask = 1 << i;
-		if (buttons & mask) { // when the button is not pressed
+
+        // Handling button release here
+		if (buttons & mask) { 
 			state[i] += BUTTON_STATE_INCREMENT;
 			if (state[i] >= BUTTON_PRESSED_STATE) {
 				state[i] = BUTTON_PRESSED_STATE;
 				gButtons |= mask; // update debounced button state
 			}
 		}
-		else { // when the button is pressed
+
+        // Handling button pressed here
+		else { 
 			state[i] -= BUTTON_STATE_DECREMENT;
 			if (state[i] <= 0) {
 				state[i] = 0;
@@ -155,35 +160,39 @@ uint32_t ButtonAutoRepeat(void)
     return presses;
 }
 
-// ISR for scanning and debouncing buttons
+// ISR for button scanning and debouncing buttons
 void ButtonISR(void) {
-    TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT); // clear interrupt flag
+    // First thing first, clear the interrupt flag so we can exit
+    TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT); 
 
-    // read hardware button state
-    uint32_t gpio_buttons =
-            ~GPIOPinRead(GPIO_PORTJ_BASE, 0xff) & (GPIO_PIN_1 | GPIO_PIN_0) // EK-TM4C1294XL buttons in positions 0 and 1
-            | ((~GPIOPinRead(GPIO_PORTH_BASE, 0xff) & (GPIO_PIN_1)) << 1) // S1
-            | ((~GPIOPinRead(GPIO_PORTK_BASE, 0xff) & (GPIO_PIN_6)) >> 3) // S2
-            | ((~GPIOPinRead(GPIO_PORTD_BASE, 0xff) & (GPIO_PIN_4))); // Select
+    // Read hardware digital button state
+    uint32_t gpio_buttons = (~GPIOPinRead(GPIO_PORTJ_BASE, 0xff) & (GPIO_PIN_1 | GPIO_PIN_0)) // EK-TM4C1294XL buttons in positions 0 and 1
+            | ((~GPIOPinRead(GPIO_PORTH_BASE, 0xff) & (GPIO_PIN_1)) << 1) // BoosterPack S1
+            | ((~GPIOPinRead(GPIO_PORTK_BASE, 0xff) & (GPIO_PIN_6)) >> 3) // BoosterPack S2
+            | ((~GPIOPinRead(GPIO_PORTD_BASE, 0xff) & (GPIO_PIN_4))); // BoosterPack Joystick Select
 
+    // Debouncing and combining the digital and analog signal together into gButtons
     uint32_t old_buttons = gButtons;    // save previous button state
     ButtonDebounce(gpio_buttons);       // Run the button debouncer. The result is in gButtons.
     ButtonReadJoystick();               // Convert joystick state to button presses. The result is in gButtons.
+    
+    // Check for button presses here to check repeat behavior
     uint32_t presses = ~old_buttons & gButtons;   // detect button presses (transitions from not pressed to pressed)
     presses |= ButtonAutoRepeat();      // autorepeat presses if a button is held long enough
 
+    // Variable to increment timer every other cycle (200Hz clock) and stop tick increment
     static bool tic = false;
     static bool running = true;
 
-    if (presses & 1) { // EK-TM4C1294XL button 1 pressed
-        running = !running;
-    }
-    if (presses & 2) {
-        gTime = 0;
-    }
+    // EK-TM4C1294XL button 1 pressed, stop running
+    if (presses & 1) running = !running;
 
+    // // EK-TM4C1294XL button 2 pressed, reset time to 0
+    if (presses & 2) gTime = 0;
+
+    // Increment time every other ISR call, so we can have a fraction of 100th of a second on a 200Hz clock
     if (running) {
-        if (tic) gTime++; // increment time every other ISR call
+        if (tic) gTime++; 
         tic = !tic;
     }
 }

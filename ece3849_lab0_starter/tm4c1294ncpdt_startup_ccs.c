@@ -54,7 +54,7 @@ extern uint32_t __STACK_TOP;
 // External declarations for the interrupt handlers used by the application.
 //
 //*****************************************************************************
-void ButtonISR(void);
+void ButtonISR(void); // handle button pressed and time tracking
 
 
 //*****************************************************************************

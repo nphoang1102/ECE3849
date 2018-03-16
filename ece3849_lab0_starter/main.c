@@ -21,7 +21,7 @@
 #include "buttons.h"
 
 uint32_t gSystemClock; // [Hz] system clock frequency
-volatile uint32_t gTime = 8345; // time in hundredths of a second
+volatile uint32_t gTime = 0; // time in hundredths of a second
 
 extern volatile uint32_t gButtons;
 
@@ -43,8 +43,11 @@ int main(void)
     GrContextInit(&sContext, &g_sCrystalfontz128x128); // Initialize the grlib graphics context
     GrContextFontSet(&sContext, &g_sFontFixed6x8); // select font
 
+    // Local variable
     uint32_t time;  // local copy of gTime
+    uint32_t butt;
     char str[128];   // string buffer
+    
     // full-screen rectangle
     tRectangle rectFullScreen = {0, 0, GrContextDpyWidthGet(&sContext)-1, GrContextDpyHeightGet(&sContext)-1};
 
@@ -53,30 +56,24 @@ int main(void)
     IntMasterEnable(); // now that we finished setting things up, re-enable interrupts
 
     while (true) {
-        /* Converting the integer to binary values for the button states */
-        uint8_t bit0 = (gButtons & (1 << 0)) ? 1 : 0;
-        uint8_t bit1 = (gButtons & (1 << 1)) ? 1 : 0;
-        uint8_t bit2 = (gButtons & (1 << 2)) ? 1 : 0;
-        uint8_t bit3 = (gButtons & (1 << 3)) ? 1 : 0;
-        uint8_t bit4 = (gButtons & (1 << 4)) ? 1 : 0;
-        uint8_t bit5 = (gButtons & (1 << 5)) ? 1 : 0;
-        uint8_t bit6 = (gButtons & (1 << 6)) ? 1 : 0;
-        uint8_t bit7 = (gButtons & (1 << 7)) ? 1 : 0;
-        uint8_t bit8 = (gButtons & (1 << 8)) ? 1 : 0;
+        // Read one and store necessary global volatile variables
+        butt = gButtons;
+        time = gTime;
 
-
-
+        // Preparing the screen background and text format first
         GrContextForegroundSet(&sContext, ClrBlack);
         GrRectFill(&sContext, &rectFullScreen); // fill screen with black
-        time = gTime; // read shared global only once
+        GrContextForegroundSet(&sContext, ClrYellow); // yellow text
+
+        // Set what text to print out and its respective location
         snprintf(str, sizeof(str), "Time = %02u:%02u:%02u", ((time/6000)%60), ((time/100)%60), (time%100)); // convert time to string
-        GrContextForegroundSet(&sContext, ClrYellow); // yellow text
         GrStringDraw(&sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 0, /*opaque*/ false);
-
-        snprintf(str, sizeof(str), "%u%u%u%u%u%u%u%u%u", bit8, bit7, bit6, bit5, bit4, bit3, bit2, bit1, bit0); // convert time to string
-        GrContextForegroundSet(&sContext, ClrYellow); // yellow text
+        snprintf(str, sizeof(str), "Button states:");
         GrStringDraw(&sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 16, /*opaque*/ false);
-
+        snprintf(str, sizeof(str), "%u%u%u%u%u%u%u%u%u", (butt>>8)&1, (butt>>7)&1, (butt>>6)&1, (butt>>5)&1, (butt>>4)&1, (butt>>3)&1, (butt>>2)&1, (butt>>1)&1, (butt>>0)&1);
+        GrStringDraw(&sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 32, /*opaque*/ false);
+        
+        // Flush out to screen
         GrFlush(&sContext); // flush the frame buffer to the LCD
     }
 }
