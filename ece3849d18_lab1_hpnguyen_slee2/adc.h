@@ -37,7 +37,7 @@ void ADCinit(void); // initialize ADC1 for data sampling
 uint32_t adc_trigger_search(uint16_t pTrigger); // searching for the trigger index position
 void adc_copy_buffer_samples(uint16_t pTrigger); // copy a screen worth of samples to a buffer
 uint16_t adc_y_scaling(float fVoltsPerDiv, uint16_t sample); // scaling the ADC sample in the vertical direction
-uint16_t adc_x_scaling(float fTimePerDiv, uint16_t sample_index) // scaling the ADC sample in the horizontal direction
-
+uint16_t adc_x_scaling(float fTimePerDiv, uint16_t sample_index); // scaling the ADC sample in the horizontal direction
+void adc_plot_func(float fVoltsPerDiv, float fTimePerDiv); // plot the function copied to the local buffer
 
 #endif /* ADC_H_ */

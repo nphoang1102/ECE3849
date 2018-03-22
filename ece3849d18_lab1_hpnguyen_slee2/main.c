@@ -54,7 +54,7 @@ int main(void)
 
     // LCD init done, move on to ISR
     ButtonInit(); // setup the ISR for our counter
-    ADCinit();
+//    ADCinit();
     IntMasterEnable(); // now that we finished setting things up, re-enable interrupts
 
     while (true) {

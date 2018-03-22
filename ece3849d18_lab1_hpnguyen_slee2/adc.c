@@ -9,6 +9,7 @@
 
 // Standard C libraries
 #include <stdint.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
 
@@ -53,13 +54,11 @@ void ADCinit(void) {
     ADCSequenceStepConfigure(ADC1_BASE, 0, 0, ADC_CTL_CH3 | ADC_CTL_IE | ADC_CTL_END);// in the 0th step, sample channel 3 (AIN3)
      // enable interrupt, and make it the end of sequence
     
-    // Hook up the ISR
-    IntPrioritySet(INT_ADC1SS0, 29); // set ADC1 sequence 0 interrupt priority
-    ADCIntEnable(ADC1_BASE, 0); // enable sequence 0 interrupt in the ADC1 peripheral
-    
     // Fire the interrupt and sequence now
-    IntEnable(INT_ADC1SS0); // enable ADC1 sequence 0 interrupt in int. controller
     ADCSequenceEnable(ADC1_BASE, 0); // enable the sequence. it is now sampling
+    ADCIntEnable(ADC1_BASE, 0); // enable sequence 0 interrupt in the ADC1 peripheral
+    IntPrioritySet(INT_ADC1SS0, ADC_INT_PRIORITY); // set ADC1 sequence 0 interrupt priority
+    IntEnable(INT_ADC1SS0); // enable ADC1 sequence 0 interrupt in int. controller
 }
 
 
@@ -82,9 +81,6 @@ void ADC_ISR(void) {
 // Searching for the trigger
 uint32_t adc_trigger_search(uint16_t pTrigger) {
 
-    // Variable to keep track whether we have found the trigger value
-    uint8_t trigger_found = 1;
-
     // Choose a starting point for our buffer search
     int32_t start_index = ADC_BUFFER_WRAP(gADCBufferIndex - HALF_SCREEN_SIZE);
     int32_t search_index = start_index;
@@ -99,15 +95,11 @@ uint32_t adc_trigger_search(uint16_t pTrigger) {
         search_iteration++;
 
         // If we have been searching for a while, drop the operation
-        if (search_iteration > drop_condition) {
-            trigger_found = false;
-            break;
-        }
+        if (search_iteration > drop_condition) return (1<<14);
     }
 
     // Return based on the result of the search
-    if (trigger_found) return search_index;
-    else return (1<<14); // a number much bigger than the buffer size
+    return search_index;
 }
 
 // Copy samples half a screen behind and half a screen ahead of the trigger point
@@ -131,8 +123,40 @@ uint16_t adc_y_scaling(float fVoltsPerDiv, uint16_t sample) {
     return LCD_VERTICAL_MAX/2 - (int)roundf(fScale * ((int)sample - ADC_OFFSET));
 }
 
-// Scaling the ADC sample in the horizontal direction
+// Scaling the ADC sample in the horizontal direction <---- need work
 uint16_t adc_x_scaling(float fTimePerDiv, uint16_t sample_index) {
     float fScale = (VIN_RANGE * PIXELS_PER_DIV)/(fTimePerDiv);
     return LCD_HORIZONTAL_MAX/2 - (int)roundf(fScale * (int)sample_index);
+}
+
+// Plot the function based on the local buffer
+void adc_plot_func(float fVoltsPerDiv, float fTimePerDiv) {
+
+    // String buffer to draw out to screen and index int
+    char str[128];
+    int i = 0;
+
+    // Initialize the screen first
+    Crystalfontz128x128_Init(); // Initialize the LCD display driver
+    Crystalfontz128x128_SetOrientation(LCD_ORIENTATION_UP); // set screen orientation
+    tContext sContext;
+    GrContextInit(&sContext, &g_sCrystalfontz128x128); // Initialize the grlib graphics context
+    GrContextFontSet(&sContext, &g_sFontFixed6x8); // select font
+    tRectangle rectFullScreen = {0, 0, GrContextDpyWidthGet(&sContext)-1, GrContextDpyHeightGet(&sContext)-1}; // full-screen rectangle
+
+    // Preparing the screen background and text format first
+    GrContextForegroundSet(&sContext, ClrBlack);
+    GrRectFill(&sContext, &rectFullScreen); // fill screen with black
+    GrContextForegroundSet(&sContext, ClrYellow); // yellow text
+
+    // Iterate through the buffer and draw out points to screen
+    for (i = 0; i < FULL_SCREEN_SIZE; i++) {
+        uint16_t x = adc_x_scaling(fTimePerDiv, i);
+        uint16_t y = adc_y_scaling(fVoltsPerDiv, gScreenBuffer[i]);
+        snprintf(str, sizeof(str), ".");
+        GrStringDraw(&sContext, str, /*length*/ -1, /*x*/ x, /*y*/ y, /*opaque*/ false);
+    }
+
+    // Flush out to screen
+    GrFlush(&sContext); // flush the frame buffer to the LCD
 }
