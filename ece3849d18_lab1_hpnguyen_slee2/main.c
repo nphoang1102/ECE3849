@@ -19,6 +19,7 @@
 
 // Button for handling debounce and ISR
 #include "buttons.h"
+#include "adc.h"
 
 uint32_t gSystemClock; // [Hz] system clock frequency
 volatile uint32_t gTime = 0; // time in hundredths of a second
@@ -53,6 +54,7 @@ int main(void)
 
     // LCD init done, move on to ISR
     ButtonInit(); // setup the ISR for our counter
+    ADCinit();
     IntMasterEnable(); // now that we finished setting things up, re-enable interrupts
 
     while (true) {
