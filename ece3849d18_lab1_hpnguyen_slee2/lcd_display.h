@@ -7,8 +7,8 @@
  *  Header for lcd_display.c for drawing helper functions
  */
 
-#ifndef ADC_H_
-#define ADC_H_
+#ifndef LCD_DISPLAY_H_
+#define LCD_DISPLAY_H_
 
 #include <stdint.h>
 
@@ -17,4 +17,4 @@
 void lcd_init(); // initialize the LCD screen
 void lcd_plot_func(float fVoltsPerDiv, float fTimePerDiv); // plotting the function to LCD screen
 
-#endif /* ADC_H_ */
+#endif /* LCD_DISPLAY_H_ */

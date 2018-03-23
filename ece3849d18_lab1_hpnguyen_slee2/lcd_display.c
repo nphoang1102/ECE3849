@@ -34,7 +34,7 @@ void lcd_init() {
     GrContextFontSet(&sContext, &g_sFontFixed6x8); 
 
     // Full-screen rectangle
-    tRectangle rectFullScreen = {0, 0, GrContextDpyWidthGet(&sContext)-1, GrContextDpyHeightGet(&sContext)-1};
+//    tRectangle rectFullScreen = {0, 0, GrContextDpyWidthGet(&sContext)-1, GrContextDpyHeightGet(&sContext)-1};
 }
 
 // Plot the function based on the local buffer
@@ -52,10 +52,14 @@ void lcd_plot_func(float fVoltsPerDiv, float fTimePerDiv) {
     GrContextFontSet(&sContext, &g_sFontFixed6x8); // select font
     tRectangle rectFullScreen = {0, 0, GrContextDpyWidthGet(&sContext)-1, GrContextDpyHeightGet(&sContext)-1}; // full-screen rectangle
 
-    // Preparing the screen background and text format first
+    // Preparing the screen background and text format
     GrContextForegroundSet(&sContext, ClrBlack);
     GrRectFill(&sContext, &rectFullScreen); // fill screen with black
     GrContextForegroundSet(&sContext, ClrYellow); // yellow text
+
+    // Put in the grid and display 
+//    lcd_draw_grid();
+//    lcd_display_choices(char);
 
     // Iterate through the buffer and draw out points to screen
     for (i = 0; i < FULL_SCREEN_SIZE; i++) {
@@ -67,4 +71,9 @@ void lcd_plot_func(float fVoltsPerDiv, float fTimePerDiv) {
 
     // Flush out to screen
     GrFlush(&sContext); // flush the frame buffer to the LCD
+}
+
+// Drawing grid onto the LCD screen
+void lcd_draw_grid() {
+
 }

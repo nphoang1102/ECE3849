@@ -14,6 +14,7 @@
 #include <math.h>
 
 // Driver libraries from TivaWare
+#include "Crystalfontz128x128_ST7735.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_ints.h"
 #include "inc/tm4c1294ncpdt.h"
