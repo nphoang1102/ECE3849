@@ -14,7 +14,6 @@
 #include <math.h>
 
 // Driver libraries from TivaWare
-#include "Crystalfontz128x128_ST7735.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_ints.h"
 #include "inc/tm4c1294ncpdt.h"
@@ -121,42 +120,4 @@ void adc_copy_buffer_samples(uint16_t pTrigger) {
 uint16_t adc_y_scaling(float fVoltsPerDiv, uint16_t sample) {
     float fScale = (VIN_RANGE * PIXELS_PER_DIV)/((1 << ADC_BITS) * fVoltsPerDiv);
     return LCD_VERTICAL_MAX/2 - (int)roundf(fScale * ((int)sample - ADC_OFFSET));
-}
-
-// Scaling the ADC sample in the horizontal direction <---- need work
-uint16_t adc_x_scaling(float fTimePerDiv, uint16_t sample_index) {
-    float fScale = (VIN_RANGE * PIXELS_PER_DIV)/(fTimePerDiv);
-    return LCD_HORIZONTAL_MAX/2 - (int)roundf(fScale * (int)sample_index);
-}
-
-// Plot the function based on the local buffer
-void adc_plot_func(float fVoltsPerDiv, float fTimePerDiv) {
-
-    // String buffer to draw out to screen and index int
-    char str[128];
-    int i = 0;
-
-    // Initialize the screen first
-    Crystalfontz128x128_Init(); // Initialize the LCD display driver
-    Crystalfontz128x128_SetOrientation(LCD_ORIENTATION_UP); // set screen orientation
-    tContext sContext;
-    GrContextInit(&sContext, &g_sCrystalfontz128x128); // Initialize the grlib graphics context
-    GrContextFontSet(&sContext, &g_sFontFixed6x8); // select font
-    tRectangle rectFullScreen = {0, 0, GrContextDpyWidthGet(&sContext)-1, GrContextDpyHeightGet(&sContext)-1}; // full-screen rectangle
-
-    // Preparing the screen background and text format first
-    GrContextForegroundSet(&sContext, ClrBlack);
-    GrRectFill(&sContext, &rectFullScreen); // fill screen with black
-    GrContextForegroundSet(&sContext, ClrYellow); // yellow text
-
-    // Iterate through the buffer and draw out points to screen
-    for (i = 0; i < FULL_SCREEN_SIZE; i++) {
-        uint16_t x = adc_x_scaling(fTimePerDiv, i);
-        uint16_t y = adc_y_scaling(fVoltsPerDiv, gScreenBuffer[i]);
-        snprintf(str, sizeof(str), ".");
-        GrStringDraw(&sContext, str, /*length*/ -1, /*x*/ x, /*y*/ y, /*opaque*/ false);
-    }
-
-    // Flush out to screen
-    GrFlush(&sContext); // flush the frame buffer to the LCD
 }
