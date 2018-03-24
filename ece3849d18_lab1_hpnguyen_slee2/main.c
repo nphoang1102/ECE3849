@@ -38,18 +38,17 @@ int main(void)
     // Initialize the system clock to 120 MHz
     gSystemClock = SysCtlClockFreqSet(SYSCTL_XTAL_25MHZ | SYSCTL_OSC_MAIN | SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480, 120000000);
     lcd_init();
-
-    // Local variable
-//    uint32_t time;  // local copy of gTime
-    uint32_t butt;
-    char str[128];   // string buffer
     
-    // LCD init done, move on to ISR
-    ButtonInit(); // setup the ISR for our counter
-//    ADCinit();
-    IntMasterEnable(); // now that we finished setting things up, re-enable interrupts
+    // Initialization here
+    lcd_init();
+    // ButtonInit(); // setup the ISR for our counter
+    // ADCinit();
+
+    // Enable global interrupt
+//    IntMasterEnable(); // now that we finished setting things up, re-enable interrupts
 
     while (true) {
+        lcd_show_screen(1.0f, 20, 200, 60.1f);
         // Read one and store necessary global volatile variables
 //        butt = gButtons;
 //        time = gTime;

@@ -22,14 +22,10 @@
 #define ADC_BUFFER_SIZE 2048 // 2kbit buffer size
 #define ADC_BUFFER_WRAP(i) ((i) & (ADC_BUFFER_SIZE - 1)) // index wrapping
 
-// Screen helper definition
-#define FULL_SCREEN_SIZE 128 // self explanatory
-#define HALF_SCREEN_SIZE 64 // half of 128 pixels
 
 // Scaling definition
 #define ADC_OFFSET 2048
 #define VIN_RANGE 3.3f
-#define PIXELS_PER_DIV 20
 #define ADC_BITS 12
 
 /* Function prototypes */

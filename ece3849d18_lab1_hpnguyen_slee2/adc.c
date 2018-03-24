@@ -28,12 +28,13 @@
 // Libraries from project
 #include "adc.h"
 #include "buttons.h"
+#include "lcd_display.h"
 
 // Global variable declaration
 volatile int32_t gADCBufferIndex = ADC_BUFFER_SIZE - 1; // latest sample index
 volatile uint16_t gADCBuffer[ADC_BUFFER_SIZE];  // ring buffer
 volatile uint32_t gADCErrors; // number of missed ADC deadlines
-volatile uint16_t gScreenBuffer[FULL_SCREEN_SIZE];
+volatile uint16_t gScreenBuffer[FULL_SCREEN_SIZE] = {0};
 
 // Initialize ADC1 for oscillator
 void ADCinit(void) {
@@ -42,13 +43,17 @@ void ADCinit(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
     GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_0); // GPIO setup pin E0
 
-    // Clock configuration for ADC1
+    // Enable ADC0 and ADC1
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
+
+    // Setup the ADC clock
     uint32_t pll_frequency = SysCtlFrequencyGet(CRYSTAL_FREQUENCY);
     uint32_t pll_divisor = (pll_frequency - 1) / (16 * ADC_SAMPLING_RATE) + 1; //round up
+    ADCClockConfigSet(ADC0_BASE, ADC_CLOCK_SRC_PLL | ADC_CLOCK_RATE_FULL, pll_divisor);
     ADCClockConfigSet(ADC1_BASE, ADC_CLOCK_SRC_PLL | ADC_CLOCK_RATE_FULL, pll_divisor);
 
-    // Initialize ADC1 peripheral
+    // Step configuration for ADC1
     ADCSequenceDisable(ADC1_BASE, 0); // choose ADC1 sequence 0; disable before configuring
     ADCSequenceConfigure(ADC1_BASE, 0, ADC_TRIGGER_ALWAYS, 0); // specify the "Always" trigger
     ADCSequenceStepConfigure(ADC1_BASE, 0, 0, ADC_CTL_CH3 | ADC_CTL_IE | ADC_CTL_END);// in the 0th step, sample channel 3 (AIN3)
@@ -94,8 +99,8 @@ uint32_t adc_trigger_search(uint16_t pTrigger) {
         current_value = gADCBuffer[search_index];
         search_iteration++;
 
-        // If we have been searching for a while, drop the operation
-        if (search_iteration > drop_condition) return (1<<14);
+        // If we have been searching for a while, drop the operation return the initial search index
+        if (search_iteration > drop_condition) return start_index;
     }
 
     // Return based on the result of the search
