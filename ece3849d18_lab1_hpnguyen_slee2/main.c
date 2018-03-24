@@ -42,7 +42,7 @@ int main(void)
     // Initialization here
     lcd_init();
     // ButtonInit(); // setup the ISR for our counter
-    // ADCinit();
+//     ADCinit();
 
     // Enable global interrupt
 //    IntMasterEnable(); // now that we finished setting things up, re-enable interrupts

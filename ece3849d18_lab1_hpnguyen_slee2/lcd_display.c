@@ -8,8 +8,8 @@
  */
 
 // Standard C libraries
-#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 // Driver libraries from TivaWare
 #include "Crystalfontz128x128_ST7735.h"
@@ -91,21 +91,25 @@ void lcd_plot_grid(tContext * sContext) {
 void lcd_draw_text(tContext * sContext, uint16_t time_scale, uint16_t voltage_scale, float cpu_load) {
 
     // String buffer to write text to
-    char str[128];
+    char str[32];
 
     // White text
     GrContextForegroundSet(sContext, ClrWhite);
 
     // Print out the time scale
     snprintf(str, sizeof(str), "%u us", time_scale);
-    GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 5, /*y*/ 1, /*opaque*/ false);
+    GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 5, /*y*/ 0, /*opaque*/ false);
 
     // Print out the voltage scale
     snprintf(str, sizeof(str), "%u mV", voltage_scale);
-    GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 46, /*y*/ 1, /*opaque*/ false);
+    GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 50, /*y*/ 0, /*opaque*/ false);
 
     // Print out the trigger slope
-//    GrImageDraw();
+    GrLineDrawH(sContext, 114, 121, 0);
+    GrLineDrawV(sContext, 114, 0, 7);
+    GrLineDrawH(sContext, 107, 114, 7);
+    GrLineDraw(sContext, 114, 2, 111, 5);
+    GrLineDraw(sContext, 114, 2, 117, 5);
 
     // Print out the CPU load
     snprintf(str, sizeof(str), "CPU load: %.1f%%", cpu_load);

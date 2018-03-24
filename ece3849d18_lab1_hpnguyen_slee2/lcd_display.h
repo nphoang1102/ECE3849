@@ -27,5 +27,6 @@ void lcd_show_screen(float fVoltsPerDiv, uint16_t time_scale, uint16_t voltage_s
 void lcd_plot_func(float fVoltsPerDiv, tContext * sContext); // plotting the function to LCD screen
 void lcd_plot_grid(tContext * sContext); // plot the grid
 void lcd_draw_text(tContext * sContext, uint16_t time_scale, uint16_t voltage_scale, float cpu_load); // draw the text
+uint8_t *lcd_read_image(char *fname); // funtion to draw the rising edge trigger symbol
 
 #endif /* LCD_DISPLAY_H_ */
