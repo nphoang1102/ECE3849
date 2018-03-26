@@ -41,14 +41,14 @@ int main(void)
     
     // Initialization here
     lcd_init();
-    // ButtonInit(); // setup the ISR for our counter
+//    ButtonInit(); // setup the ISR for our counter
 //    ADCinit();
 
     // Enable global interrupt
     IntMasterEnable(); // now that we finished setting things up, re-enable interrupts
 
     while (true) {
-        lcd_show_screen(1.0f, 20, 200, 60.1f);
+        lcd_show_screen(1.0f, 20, 200, 60.1f, 1);
         // Read one and store necessary global volatile variables
 //        butt = gButtons;
 //        time = gTime;

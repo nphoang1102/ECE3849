@@ -71,6 +71,7 @@ void ADCinit(void) {
 void ADC_ISR(void) {
     // First thing first, clear the interrupt flag so we can exit
     ADC1_ISC_R = ADC_ISC_IN0;
+//    ADCIntClear(ADC1_BASE, 0);
 
     // Process the data coming in
     if (ADC1_OSTAT_R & ADC_OSTAT_OV0) { // check for ADC FIFO overflow
@@ -83,8 +84,8 @@ void ADC_ISR(void) {
 
 }
 
-// Searching for the trigger
-uint32_t adc_trigger_search(uint16_t pTrigger) {
+// Searching for the trigger, rising = 1 for rising edge, rising = 0 for falling edge
+uint32_t adc_trigger_search(uint16_t pTrigger, uint8_t rising) {
 
     // Choose a starting point for our buffer search
     int32_t start_index = ADC_BUFFER_WRAP(gADCBufferIndex - HALF_SCREEN_SIZE);
@@ -94,13 +95,28 @@ uint32_t adc_trigger_search(uint16_t pTrigger) {
     uint16_t search_iteration = 0;
     uint16_t drop_condition = ADC_BUFFER_SIZE >> 1;
     uint16_t current_value = gADCBuffer[search_index];
-    while (current_value < pTrigger) {
-        search_index = ADC_BUFFER_WRAP(search_index - 1);
-        current_value = gADCBuffer[search_index];
-        search_iteration++;
+    switch(rising) {
+    case 1: // case of rising edge
+        while (current_value < pTrigger) {
+            search_index = ADC_BUFFER_WRAP(search_index - 1);
+            current_value = gADCBuffer[search_index];
+            search_iteration++;
 
-        // If we have been searching for a while, drop the operation return the initial search index
-        if (search_iteration > drop_condition) return start_index;
+            // If we have been searching for a while, drop the operation return the initial search index
+            if (search_iteration > drop_condition) return start_index;
+        }
+        break;
+
+    case 0: // case of falling edge
+        while (current_value > pTrigger) {
+            search_index = ADC_BUFFER_WRAP(search_index - 1);
+            current_value = gADCBuffer[search_index];
+            search_iteration++;
+
+            // If we have been searching for a while, drop the operation return the initial search index
+            if (search_iteration > drop_condition) return start_index;
+        }
+        break;
     }
 
     // Return based on the result of the search
@@ -108,10 +124,10 @@ uint32_t adc_trigger_search(uint16_t pTrigger) {
 }
 
 // Copy samples half a screen behind and half a screen ahead of the trigger point
-void adc_copy_buffer_samples(uint16_t pTrigger) {
+void adc_copy_buffer_samples(uint16_t pTrigger, uint8_t rising) {
 
     // Index range for buffer copy
-    uint32_t half_behind = ADC_BUFFER_WRAP(adc_trigger_search(pTrigger) - HALF_SCREEN_SIZE);
+    uint32_t half_behind = ADC_BUFFER_WRAP(adc_trigger_search(pTrigger, rising) - HALF_SCREEN_SIZE);
     uint16_t current_index = 0;
     int i;
 
