@@ -37,36 +37,17 @@ int main(void)
 
     // Initialize the system clock to 120 MHz
     gSystemClock = SysCtlClockFreqSet(SYSCTL_XTAL_25MHZ | SYSCTL_OSC_MAIN | SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480, 120000000);
-    lcd_init();
     
     // Initialization here
     lcd_init();
-//    ButtonInit(); // setup the ISR for our counter
-//    ADCinit();
+    ButtonInit(); // setup the ISR for our counter
+    ADCinit();
 
     // Enable global interrupt
     IntMasterEnable(); // now that we finished setting things up, re-enable interrupts
 
     while (true) {
+        adc_copy_buffer_samples(0, 1);
         lcd_show_screen(1.0f, 20, 200, 60.1f, 1);
-        // Read one and store necessary global volatile variables
-//        butt = gButtons;
-//        time = gTime;
-//
-//        // Preparing the screen background and text format first
-//        GrContextForegroundSet(&sContext, ClrBlack);
-//        GrRectFill(&sContext, &rectFullScreen); // fill screen with black
-//        GrContextForegroundSet(&sContext, ClrYellow); // yellow text
-//
-//        // Set what text to print out and its respective location
-//        snprintf(str, sizeof(str), "Time = %02u:%02u:%02u", ((time/6000)%60), ((time/100)%60), (time%100)); // convert time to string
-//        GrStringDraw(&sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 0, /*opaque*/ false);
-//        snprintf(str, sizeof(str), "Button states:");
-//        GrStringDraw(&sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 16, /*opaque*/ false);
-//        snprintf(str, sizeof(str), "%u%u%u%u%u%u%u%u%u", (butt>>8)&1, (butt>>7)&1, (butt>>6)&1, (butt>>5)&1, (butt>>4)&1, (butt>>3)&1, (butt>>2)&1, (butt>>1)&1, (butt>>0)&1);
-//        GrStringDraw(&sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 32, /*opaque*/ false);
-//
-//        // Flush out to screen
-//        GrFlush(&sContext); // flush the frame buffer to the LCD
     }
 }

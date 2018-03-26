@@ -15,13 +15,15 @@
 
 /* Macro definition */
 
+// ADC scanning frequency
+#define ADC_SCAN_RATE 120000000
+
 // Definition for interrupt setup
 #define ADC_INT_PRIORITY 0 // highest priority considering 1us time period
 
 // Definition for ring buffer size and wrapping helper
 #define ADC_BUFFER_SIZE 2048 // 2kbit buffer size
 #define ADC_BUFFER_WRAP(i) ((i) & (ADC_BUFFER_SIZE - 1)) // index wrapping
-
 
 // Scaling definition
 #define ADC_OFFSET 2048

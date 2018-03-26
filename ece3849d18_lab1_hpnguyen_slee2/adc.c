@@ -34,7 +34,11 @@
 volatile int32_t gADCBufferIndex = ADC_BUFFER_SIZE - 1; // latest sample index
 volatile uint16_t gADCBuffer[ADC_BUFFER_SIZE];  // ring buffer
 volatile uint32_t gADCErrors; // number of missed ADC deadlines
-volatile uint16_t gScreenBuffer[FULL_SCREEN_SIZE] = {0};
+volatile uint16_t gScreenBuffer[FULL_SCREEN_SIZE] = {2047};
+//uint32_t gADCSamplingRate = 0;
+
+// Importing global variable
+extern uint32_t gSystemClock;
 
 // Initialize ADC1 for oscillator
 void ADCinit(void) {
@@ -43,14 +47,13 @@ void ADCinit(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
     GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_0); // GPIO setup pin E0
 
-    // Enable ADC0 and ADC1
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+    // Enable ADC1
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
 
     // Setup the ADC clock
     uint32_t pll_frequency = SysCtlFrequencyGet(CRYSTAL_FREQUENCY);
     uint32_t pll_divisor = (pll_frequency - 1) / (16 * ADC_SAMPLING_RATE) + 1; //round up
-    ADCClockConfigSet(ADC0_BASE, ADC_CLOCK_SRC_PLL | ADC_CLOCK_RATE_FULL, pll_divisor);
+//    gADCSamplingRate = PLL_FREQUENCY / (16 * pll_divisor);
     ADCClockConfigSet(ADC1_BASE, ADC_CLOCK_SRC_PLL | ADC_CLOCK_RATE_FULL, pll_divisor);
 
     // Step configuration for ADC1
