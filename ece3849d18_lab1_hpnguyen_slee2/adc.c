@@ -34,7 +34,11 @@
 volatile int32_t gADCBufferIndex = ADC_BUFFER_SIZE - 1; // latest sample index
 volatile uint16_t gADCBuffer[ADC_BUFFER_SIZE];  // ring buffer
 volatile uint32_t gADCErrors; // number of missed ADC deadlines
-volatile uint16_t gScreenBuffer[FULL_SCREEN_SIZE] = {0};
+volatile uint16_t gScreenBuffer[FULL_SCREEN_SIZE] = {2047};
+//uint32_t gADCSamplingRate = 0;
+
+// Importing global variable
+extern uint32_t gSystemClock;
 
 // Initialize ADC1 for oscillator
 void ADCinit(void) {
@@ -43,14 +47,13 @@ void ADCinit(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
     GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_0); // GPIO setup pin E0
 
-    // Enable ADC0 and ADC1
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+    // Enable ADC1
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
 
     // Setup the ADC clock
     uint32_t pll_frequency = SysCtlFrequencyGet(CRYSTAL_FREQUENCY);
     uint32_t pll_divisor = (pll_frequency - 1) / (16 * ADC_SAMPLING_RATE) + 1; //round up
-    ADCClockConfigSet(ADC0_BASE, ADC_CLOCK_SRC_PLL | ADC_CLOCK_RATE_FULL, pll_divisor);
+//    gADCSamplingRate = PLL_FREQUENCY / (16 * pll_divisor);
     ADCClockConfigSet(ADC1_BASE, ADC_CLOCK_SRC_PLL | ADC_CLOCK_RATE_FULL, pll_divisor);
 
     // Step configuration for ADC1
@@ -71,6 +74,7 @@ void ADCinit(void) {
 void ADC_ISR(void) {
     // First thing first, clear the interrupt flag so we can exit
     ADC1_ISC_R = ADC_ISC_IN0;
+//    ADCIntClear(ADC1_BASE, 0);
 
     // Process the data coming in
     if (ADC1_OSTAT_R & ADC_OSTAT_OV0) { // check for ADC FIFO overflow
@@ -83,8 +87,8 @@ void ADC_ISR(void) {
 
 }
 
-// Searching for the trigger
-uint32_t adc_trigger_search(uint16_t pTrigger) {
+// Searching for the trigger, rising = 1 for rising edge, rising = 0 for falling edge
+uint32_t adc_trigger_search(uint16_t pTrigger, uint8_t rising) {
 
     // Choose a starting point for our buffer search
     int32_t start_index = ADC_BUFFER_WRAP(gADCBufferIndex - HALF_SCREEN_SIZE);
@@ -94,13 +98,28 @@ uint32_t adc_trigger_search(uint16_t pTrigger) {
     uint16_t search_iteration = 0;
     uint16_t drop_condition = ADC_BUFFER_SIZE >> 1;
     uint16_t current_value = gADCBuffer[search_index];
-    while (current_value < pTrigger) {
-        search_index = ADC_BUFFER_WRAP(search_index - 1);
-        current_value = gADCBuffer[search_index];
-        search_iteration++;
+    switch(rising) {
+    case 1: // case of rising edge
+        while (current_value < pTrigger) {
+            search_index = ADC_BUFFER_WRAP(search_index - 1);
+            current_value = gADCBuffer[search_index];
+            search_iteration++;
 
-        // If we have been searching for a while, drop the operation return the initial search index
-        if (search_iteration > drop_condition) return start_index;
+            // If we have been searching for a while, drop the operation return the initial search index
+            if (search_iteration > drop_condition) return start_index;
+        }
+        break;
+
+    case 0: // case of falling edge
+        while (current_value > pTrigger) {
+            search_index = ADC_BUFFER_WRAP(search_index - 1);
+            current_value = gADCBuffer[search_index];
+            search_iteration++;
+
+            // If we have been searching for a while, drop the operation return the initial search index
+            if (search_iteration > drop_condition) return start_index;
+        }
+        break;
     }
 
     // Return based on the result of the search
@@ -108,10 +127,10 @@ uint32_t adc_trigger_search(uint16_t pTrigger) {
 }
 
 // Copy samples half a screen behind and half a screen ahead of the trigger point
-void adc_copy_buffer_samples(uint16_t pTrigger) {
+void adc_copy_buffer_samples(uint16_t pTrigger, uint8_t rising) {
 
     // Index range for buffer copy
-    uint32_t half_behind = ADC_BUFFER_WRAP(adc_trigger_search(pTrigger) - HALF_SCREEN_SIZE);
+    uint32_t half_behind = ADC_BUFFER_WRAP(adc_trigger_search(pTrigger, rising) - HALF_SCREEN_SIZE);
     uint16_t current_index = 0;
     int i;
 

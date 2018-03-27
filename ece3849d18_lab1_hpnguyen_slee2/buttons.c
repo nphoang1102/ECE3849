@@ -33,8 +33,7 @@ extern uint32_t gSystemClock;   // [Hz] system clock frequency
 extern volatile uint32_t gTime; // time in hundredths of a second
 
 // initialize all button and joystick handling hardware
-void ButtonInit(void)
-{
+void ButtonInit(void) {
     // initialize a general purpose timer for periodic interrupts
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     TimerDisable(TIMER0_BASE, TIMER_BOTH);
@@ -75,6 +74,19 @@ void ButtonInit(void)
     GPIOPinTypeGPIOInput(GPIO_PORTD_BASE, GPIO_PIN_4);
     GPIOPadConfigSet(GPIO_PORTD_BASE, GPIO_PIN_4, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
+    // initialize ADC0 peripheral
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+    uint32_t pll_frequency = SysCtlFrequencyGet(CRYSTAL_FREQUENCY);
+    uint32_t pll_divisor = (pll_frequency - 1) / (16 * ADC_SAMPLING_RATE) + 1; // round divisor up
+    gADCSamplingRate = pll_frequency / (16 * pll_divisor); // actual sampling rate may differ from ADC_SAMPLING_RATE
+    ADCClockConfigSet(ADC0_BASE, ADC_CLOCK_SRC_PLL | ADC_CLOCK_RATE_FULL, pll_divisor); // only ADC0 has PLL clock divisor control
+
+    // initialize ADC sampling sequence
+    ADCSequenceDisable(ADC0_BASE, 0);
+    ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_PROCESSOR, 0);
+    ADCSequenceStepConfigure(ADC0_BASE, 0, 0, ADC_CTL_CH13);                             // Joystick HOR(X)
+    ADCSequenceStepConfigure(ADC0_BASE, 0, 1, ADC_CTL_CH17 | ADC_CTL_IE | ADC_CTL_END);  // Joystick VER(Y)
+    ADCSequenceEnable(ADC0_BASE, 0);
 }
 
 // update the debounced button state gButtons
