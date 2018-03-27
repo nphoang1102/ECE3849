@@ -21,8 +21,12 @@
 // public globals
 volatile uint32_t gButtons = 0; // debounced button state, one per bit in the lowest bits
                                 // button is pressed if its bit is 1, not pressed if 0
+uint32_t buttonQ[BUTTON_QUEUE_LENGTH] = {0}; // buffer for FIFO queue
+volatile uint8_t buttonQhead = 0;
+volatile uint8_t buttonQtail = 0;
 uint32_t gJoystick[2] = {0};    // joystick coordinates
 uint32_t gADCSamplingRate;      // [Hz] actual ADC sampling rate
+
 
 // imported globals
 extern uint32_t gSystemClock;   // [Hz] system clock frequency
@@ -182,4 +186,37 @@ void ButtonISR(void) {
         if (tic) gTime++; 
         tic = !tic;
     }
+}
+
+// Helper function to store button signal into a FIFO
+int ButtonPutQ(uint32_t button_bitmap) {
+
+    // Creating new tail and wrap
+    int new_tail = BUTTON_BUFFER_WRAP(buttonQtail + 1);
+    
+    // Check if full and proceed to add data to queue
+    if (buttonQhead != buttonQtail) { 
+        buttonQ[buttonQtail] = button_bitmap;
+        buttonQtail = new_tail; 
+        return 1;
+    }
+
+    // Queue is full
+    return 0; // full
+}
+
+// Helper function to get store button signal from a FIFO
+int ButtonGetQ(uint32_t *button_state) {
+    
+    // Check if empty and proceed to fetch data from FIFO
+    if (fifo_head != fifo_tail) {
+        *button_state = buttonQ[buttonqHead];
+        IntMasterDisable();
+        fifo_head = FIFO_BUFFER_WRAP(fifo_head + 1);
+        IntMasterEnable();
+        return 1;
+    }
+
+    // Queue is empty
+    return 0; // empty
 }
