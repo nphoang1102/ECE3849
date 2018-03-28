@@ -33,8 +33,6 @@ volatile uint8_t buttonQhead = 0;
 volatile uint8_t buttonQtail = 0;
 uint32_t gJoystick[2] = {0};    // joystick coordinates
 uint32_t gADCSamplingRate;      // [Hz] actual ADC sampling rate
-const float gVoltageScale[] = {0.1, 0.2, 0.5, 1};
-
 
 // imported globals
 extern uint32_t gSystemClock;   // [Hz] system clock frequency

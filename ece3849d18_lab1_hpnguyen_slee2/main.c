@@ -28,7 +28,6 @@ volatile uint32_t gTime = 0; // time in hundredths of a second
 
 // Importing global variables
 extern volatile uint32_t gButtons;
-extern const float gVoltageScale[];
 
 int main(void)
 {
@@ -40,7 +39,6 @@ int main(void)
     uint16_t pTrigger = 2048; // default trigger point set to 0V
     uint8_t voltsPerDivPointer = 3; // default volts per grid is 1V
     uint16_t time_scale = 20; // default time scale per grid is 20us
-    uint16_t voltage_scale = 200; // default voltage scale is 200mV
     float cpu_load = 60.1; // initialize to 60.1% because why not
 
     // Enable the Floating Point Unit, and permit ISRs to use it
@@ -67,6 +65,6 @@ int main(void)
         adc_copy_buffer_samples(pTrigger, rising);
 
         // Display everything onto the screen
-        lcd_show_screen(gVoltageScale[voltsPerDivPointer], time_scale, voltage_scale, cpu_load, rising);
+        lcd_show_screen(voltsPerDivPointer, time_scale, cpu_load, rising);
     }
 }

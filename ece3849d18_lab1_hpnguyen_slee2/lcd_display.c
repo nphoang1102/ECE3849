@@ -18,6 +18,12 @@
 #include "lcd_display.h"
 #include "adc.h"
 
+// Declaring global variables
+const float gVoltageScale[] = {0.1, 0.2, 0.5, 1.0}; // float value of the voltage scale
+const char * const gVoltageScaleStr[] = {
+    "100 mV", "200 mV", "500 mV", " 1 V" //text value of the voltage scale
+};
+
 // Importing global variables from other modules
 extern uint16_t gScreenBuffer[FULL_SCREEN_SIZE];
 
@@ -30,7 +36,7 @@ void lcd_init() {
 }
 
 // Plot the whole oscillator screen
-void lcd_show_screen(float fVoltsPerDiv, uint16_t time_scale, uint16_t voltage_scale, float cpu_load, uint8_t trigger) {
+void lcd_show_screen(uint8_t voltsPerDivPointer, uint16_t time_scale, float cpu_load, uint8_t trigger) {
 
     // Create some pointers to fill in
     tContext sContext;
@@ -44,8 +50,8 @@ void lcd_show_screen(float fVoltsPerDiv, uint16_t time_scale, uint16_t voltage_s
 
     // Plotting everything onto the screen and flush once
     lcd_plot_grid(&sContext);
-    lcd_plot_func(fVoltsPerDiv, &sContext);
-    lcd_draw_text(&sContext, time_scale, voltage_scale, cpu_load, trigger);
+    lcd_plot_func(gVoltageScale[voltsPerDivPointer], &sContext);
+    lcd_draw_text(&sContext, time_scale, voltsPerDivPointer, cpu_load, trigger);
 
     // Flush out to screen
     GrFlush(&sContext);
@@ -88,7 +94,7 @@ void lcd_plot_grid(tContext * sContext) {
 }
 
 // Drawing text out on the LCD screen
-void lcd_draw_text(tContext * sContext, uint16_t time_scale, uint16_t voltage_scale, float cpu_load, uint8_t trigger) {
+void lcd_draw_text(tContext * sContext, uint16_t time_scale, uint8_t voltsPerDivPointer, float cpu_load, uint8_t trigger) {
 
     // String buffer to write text to
     char str[32];
@@ -101,7 +107,7 @@ void lcd_draw_text(tContext * sContext, uint16_t time_scale, uint16_t voltage_sc
     GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 5, /*y*/ 0, /*opaque*/ false);
 
     // Print out the voltage scale
-    snprintf(str, sizeof(str), "%u mV", voltage_scale);
+    snprintf(str, sizeof(str), "%s", gVoltageScaleStr[voltsPerDivPointer]);
     GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 50, /*y*/ 0, /*opaque*/ false);
 
     // Print out the trigger slope
