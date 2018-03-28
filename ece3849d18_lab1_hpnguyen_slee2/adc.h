@@ -15,8 +15,9 @@
 
 /* Macro definition */
 
-// ADC scanning frequency
-#define ADC_SCAN_RATE 120000000
+// ADC declaration
+#define ADC_SAMPLING_RATE 1000000   // [samples/sec] desired ADC sampling rate +// Timer interrupt macro
+#define CRYSTAL_FREQUENCY 25000000
 
 // Definition for interrupt setup
 #define ADC_INT_PRIORITY 0 // highest priority considering 1us time period

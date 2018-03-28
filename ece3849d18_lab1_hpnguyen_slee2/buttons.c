@@ -6,8 +6,12 @@
  *
  * ECE 3849 Lab button handling
  */
+
+// Standard C libraries
 #include <stdint.h>
 #include <stdbool.h>
+
+// TivaWare driver libraries
 #include "inc/hw_memmap.h"
 #include "inc/hw_ints.h"
 #include "driverlib/sysctl.h"
@@ -16,7 +20,10 @@
 #include "driverlib/interrupt.h"
 #include "driverlib/adc.h"
 #include "sysctl_pll.h"
+
+// Libraries from project
 #include "buttons.h"
+#include "adc.h"
 
 // public globals
 volatile uint32_t gButtons = 0; // debounced button state, one per bit in the lowest bits
@@ -221,10 +228,10 @@ int ButtonPutQ(uint32_t button_bitmap) {
 int ButtonGetQ(uint32_t *button_state) {
     
     // Check if empty and proceed to fetch data from FIFO
-    if (fifo_head != fifo_tail) {
-        *button_state = buttonQ[buttonqHead];
+    if (buttonQhead != buttonQtail) {
+        *button_state = buttonQ[buttonQhead];
         IntMasterDisable();
-        fifo_head = FIFO_BUFFER_WRAP(fifo_head + 1);
+        buttonQhead = BUTTON_BUFFER_WRAP(buttonQhead + 1);
         IntMasterEnable();
         return 1;
     }

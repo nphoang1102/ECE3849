@@ -41,7 +41,7 @@
 
 // Button FIFO queue helpers
 #define BUTTON_QUEUE_LENGTH 16
-#define BUTTON_BUFFER_WRAP(i) ((i) & (BUTTON_QUEUE_LENGTH - 1)) \
+#define BUTTON_BUFFER_WRAP(i) ((i) & (BUTTON_QUEUE_LENGTH - 1))
 
 // Global variable
 extern volatile uint32_t gButtons;	// debounced button state, one per bit in the lowest bits
