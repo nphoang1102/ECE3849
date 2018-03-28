@@ -55,6 +55,6 @@ void ButtonReadJoystick(void); // sample joystick and convert to button presses
 uint32_t ButtonAutoRepeat(void); // autorepeat button presses if a button is held long enough
 int ButtonPutQ(uint32_t button_bitmap); // putting button read into FIFO queue
 int ButtonGetQ(uint32_t *button_state); // getting button read out of the FIFO queue
-int ButtonHandling(uint8_t *rising, float *voltsPerDiv, uint16_t *time_scale, uint16_t *voltage_scale); // button handling from user input
+int ButtonHandling(uint8_t *rising, uint8_t *voltsPerDivPointer, uint16_t *time_scale); // button handling from user input
 
 #endif /* BUTTONS_H_ */

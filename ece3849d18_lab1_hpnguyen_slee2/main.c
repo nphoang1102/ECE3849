@@ -22,10 +22,13 @@
 #include "buttons.h"
 #include "lcd_display.h"
 
+// Declaring global variables
 uint32_t gSystemClock; // [Hz] system clock frequency
 volatile uint32_t gTime = 0; // time in hundredths of a second
 
+// Importing global variables
 extern volatile uint32_t gButtons;
+extern const float gVoltageScale[];
 
 int main(void)
 {
@@ -34,8 +37,8 @@ int main(void)
 
     // Local variables
     uint8_t rising = 1; // default rising edge trigger
-    uint16_t pTrigger = 0; // default trigger point set to 0
-    float voltsPerDiv = 1.0; // default volts per grid is 0.2V
+    uint16_t pTrigger = 2048; // default trigger point set to 0V
+    uint8_t voltsPerDivPointer = 3; // default volts per grid is 1V
     uint16_t time_scale = 20; // default time scale per grid is 20us
     uint16_t voltage_scale = 200; // default voltage scale is 200mV
     float cpu_load = 60.1; // initialize to 60.1% because why not
@@ -58,12 +61,12 @@ int main(void)
     while (true) {
 
         // Handling button input from user
-        ButtonHandling(&rising, &voltsPerDiv, &time_scale, &voltage_scale);
+        ButtonHandling(&rising, &voltsPerDivPointer, &time_scale);
 
         // Copy the ADC buffer value into the screen
         adc_copy_buffer_samples(pTrigger, rising);
 
         // Display everything onto the screen
-        lcd_show_screen(voltsPerDiv, time_scale, voltage_scale, cpu_load, rising);
+        lcd_show_screen(gVoltageScale[voltsPerDivPointer], time_scale, voltage_scale, cpu_load, rising);
     }
 }

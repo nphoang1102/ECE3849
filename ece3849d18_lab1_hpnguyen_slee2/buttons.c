@@ -30,9 +30,10 @@ volatile uint32_t gButtons = 0; // debounced button state, one per bit in the lo
                                 // button is pressed if its bit is 1, not pressed if 0
 uint32_t buttonQ[BUTTON_QUEUE_LENGTH] = {0}; // buffer for FIFO queue
 volatile uint8_t buttonQhead = 0;
-volatile uint8_t buttonQtail = BUTTON_QUEUE_LENGTH - 1;
+volatile uint8_t buttonQtail = 0;
 uint32_t gJoystick[2] = {0};    // joystick coordinates
 uint32_t gADCSamplingRate;      // [Hz] actual ADC sampling rate
+const float gVoltageScale[] = {0.1, 0.2, 0.5, 1};
 
 
 // imported globals
@@ -195,13 +196,20 @@ void ButtonISR(void) {
 }
 
 // Helper function to pop elements from FIFO queue and handle 
-int ButtonHandling(uint8_t *rising, float *voltsPerDiv, uint16_t *time_scale, uint16_t *voltage_scale) {
+int ButtonHandling(uint8_t *rising, uint8_t *voltsPerDivPointer, uint16_t *time_scale) {
 
     // First thing first, pop the queue, return if empty
     uint32_t presses = 0;
     if (ButtonGetQ(&presses)) {
-        /* Please put code in here! */
-        if (presses & 1) *rising = (~*rising) | 1;
+        // handling ESR_SW1, change the trigger edge
+        if (presses & (1<<4)) *rising = (*rising + 1) & 1;
+
+        // handling pushing the joystick up, increase the voltage scale
+        if (presses & (1<<7)) *voltsPerDivPointer = (*voltsPerDivPointer + 1) & ((1<<2)-1);
+
+        // handling pushing the joystick down, decrease the voltage scale
+        if (presses & (1<<8)) *voltsPerDivPointer = (*voltsPerDivPointer - 1) & ((1<<2)-1);
+
         return 1;
     }
     else return 0;
@@ -214,7 +222,7 @@ int ButtonPutQ(uint32_t button_bitmap) {
     int new_tail = BUTTON_BUFFER_WRAP(buttonQtail + 1);
     
     // Check if full and proceed to add data to queue
-    if (buttonQhead != buttonQtail) { 
+    if (buttonQhead != new_tail) {
         buttonQ[buttonQtail] = button_bitmap;
         buttonQtail = new_tail; 
         return 1;
