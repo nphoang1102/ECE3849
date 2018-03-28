@@ -30,7 +30,7 @@ volatile uint32_t gButtons = 0; // debounced button state, one per bit in the lo
                                 // button is pressed if its bit is 1, not pressed if 0
 uint32_t buttonQ[BUTTON_QUEUE_LENGTH] = {0}; // buffer for FIFO queue
 volatile uint8_t buttonQhead = 0;
-volatile uint8_t buttonQtail = 0;
+volatile uint8_t buttonQtail = BUTTON_QUEUE_LENGTH - 1;
 uint32_t gJoystick[2] = {0};    // joystick coordinates
 uint32_t gADCSamplingRate;      // [Hz] actual ADC sampling rate
 
@@ -190,21 +190,21 @@ void ButtonISR(void) {
     uint32_t presses = ~old_buttons & gButtons;   // detect button presses (transitions from not pressed to pressed)
     presses |= ButtonAutoRepeat();      // autorepeat presses if a button is held long enough
 
-    // Variable to increment timer every other cycle (200Hz clock) and stop tick increment
-    static bool tic = false;
-    static bool running = true;
+    // Store button state into our FIFO queue only if we have changes
+    if (presses != old_buttons) ButtonPutQ(presses);
+}
 
-    // EK-TM4C1294XL button 1 pressed, stop running
-    if (presses & 1) running = !running;
+// Helper function to pop elements from FIFO queue and handle 
+int ButtonHandling(uint8_t *rising, float *voltsPerDiv, uint16_t *time_scale, uint16_t *voltage_scale) {
 
-    // // EK-TM4C1294XL button 2 pressed, reset time to 0
-    if (presses & 2) gTime = 0;
-
-    // Increment time every other ISR call, so we can have a fraction of 100th of a second on a 200Hz clock
-    if (running) {
-        if (tic) gTime++; 
-        tic = !tic;
+    // First thing first, pop the queue, return if empty
+    uint32_t presses = 0;
+    if (ButtonGetQ(&presses)) {
+        /* Please put code in here! */
+        if (presses & 1) *rising = (~*rising) | 1;
+        return 1;
     }
+    else return 0;
 }
 
 // Helper function to store button signal into a FIFO

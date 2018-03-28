@@ -53,5 +53,8 @@ void ButtonInit(void); // initialize all button and joystick handling hardware
 void ButtonDebounce(uint32_t buttons); // update the debounced button state in the global variable gButtons the input argument is a bitmap of raw button state from the hardware
 void ButtonReadJoystick(void); // sample joystick and convert to button presses
 uint32_t ButtonAutoRepeat(void); // autorepeat button presses if a button is held long enough
+int ButtonPutQ(uint32_t button_bitmap); // putting button read into FIFO queue
+int ButtonGetQ(uint32_t *button_state); // getting button read out of the FIFO queue
+int ButtonHandling(uint8_t *rising, float *voltsPerDiv, uint16_t *time_scale, uint16_t *voltage_scale); // button handling from user input
 
 #endif /* BUTTONS_H_ */

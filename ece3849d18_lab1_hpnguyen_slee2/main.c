@@ -29,7 +29,16 @@ extern volatile uint32_t gButtons;
 
 int main(void)
 {
+    // Disable global interrupt before we do any initialize
     IntMasterDisable();
+
+    // Local variables
+    uint8_t rising = 1; // default rising edge trigger
+    uint16_t pTrigger = 0; // default trigger point set to 0
+    float voltsPerDiv = 1.0; // default volts per grid is 0.2V
+    uint16_t time_scale = 20; // default time scale per grid is 20us
+    uint16_t voltage_scale = 200; // default voltage scale is 200mV
+    float cpu_load = 60.1; // initialize to 60.1% because why not
 
     // Enable the Floating Point Unit, and permit ISRs to use it
     FPUEnable();
@@ -47,7 +56,14 @@ int main(void)
     IntMasterEnable(); // now that we finished setting things up, re-enable interrupts
 
     while (true) {
-        adc_copy_buffer_samples(0, 1);
-        lcd_show_screen(1.0f, 20, 200, 60.1f, 1);
+
+        // Handling button input from user
+        ButtonHandling(&rising, &voltsPerDiv, &time_scale, &voltage_scale);
+
+        // Copy the ADC buffer value into the screen
+        adc_copy_buffer_samples(pTrigger, rising);
+
+        // Display everything onto the screen
+        lcd_show_screen(voltsPerDiv, time_scale, voltage_scale, cpu_load, rising);
     }
 }
