@@ -13,8 +13,8 @@
 
 /* Macro definition */
 
-// CPU load average interval
-#define TIMER_CPU_LOAD_INT 100
+// CPU load average interval in us
+#define TIMER_CPU_LOAD_INT 10000
 
 /* Function prototypes */
 void timer_oneshot_init(void); // initialize one shot timer for CPU load measurement

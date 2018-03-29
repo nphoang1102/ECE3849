@@ -21,6 +21,7 @@
 #include "adc.h"
 #include "buttons.h"
 #include "lcd_display.h"
+#include "timer.h"
 
 // Declaring global variables
 uint32_t gSystemClock; // [Hz] system clock frequency
@@ -39,7 +40,7 @@ int main(void)
     uint16_t pTrigger = 2048; // default trigger point set to 0V
     uint8_t voltsPerDivPointer = 3; // default volts per grid is 1V
     uint16_t time_scale = 20; // default time scale per grid is 20us
-    float cpu_load = 60.1; // initialize to 60.1% because why not
+    float cpu_load = 0.0; // CPU load average over 10ms time interval
 
     // Enable the Floating Point Unit, and permit ISRs to use it
     FPUEnable();
@@ -49,9 +50,14 @@ int main(void)
     gSystemClock = SysCtlClockFreqSet(SYSCTL_XTAL_25MHZ | SYSCTL_OSC_MAIN | SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480, 120000000);
     
     // Initialization here
+    timer_oneshot_init();
     lcd_init();
     ButtonInit(); // setup the ISR for our counter
     ADCinit();
+
+    // Get unloaded tick count over 10ms and allocate memory for loaded tick count
+    uint32_t count_unloaded = timer_load_count();
+    uint32_t count_loaded = 0;
 
     // Enable global interrupt
     IntMasterEnable(); // now that we finished setting things up, re-enable interrupts
@@ -66,5 +72,9 @@ int main(void)
 
         // Display everything onto the screen
         lcd_show_screen(voltsPerDivPointer, time_scale, cpu_load, rising);
+
+        // Now that we are done with the iteration, start measuring load
+        count_loaded = timer_load_count();
+        cpu_load = (1.0f - (float)count_loaded/count_unloaded) * 100.0f;
     }
 }

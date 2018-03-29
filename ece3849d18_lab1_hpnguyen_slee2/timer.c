@@ -32,7 +32,7 @@ void timer_oneshot_init(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER3);
     TimerDisable(TIMER3_BASE, TIMER_BOTH);
     TimerConfigure(TIMER3_BASE, TIMER_CFG_ONE_SHOT);
-    TimerLoadSet(TIMER0_BASE, TIMER_A, (float)gSystemClock / TIMER_CPU_LOAD_INT - 0.5f);
+    TimerLoadSet(TIMER3_BASE, TIMER_A, TIMER_CPU_LOAD_INT - 1);
 }
 
 // Count up for 10ms time period and return counted value
