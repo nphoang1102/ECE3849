@@ -53,11 +53,13 @@ int main(void)
     timer_oneshot_init();
     lcd_init();
     ButtonInit(); // setup the ISR for our counter
-    ADCinit();
 
     // Get unloaded tick count over 10ms and allocate memory for loaded tick count
     uint32_t count_unloaded = timer_load_count();
     uint32_t count_loaded = 0;
+
+    // Init the ADC later or it will miss the first deadline...
+    ADCinit();
 
     // Enable global interrupt
     IntMasterEnable(); // now that we finished setting things up, re-enable interrupts

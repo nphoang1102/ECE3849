@@ -21,7 +21,7 @@
 // Declaring global variables
 const float gVoltageScale[] = {0.1, 0.2, 0.5, 1.0}; // float value of the voltage scale
 const char * const gVoltageScaleStr[] = {
-    "100 mV", "200 mV", "500 mV", " 1 V" //text value of the voltage scale
+    "100 mV", "200 mV", "500 mV", "1.00 V" //text value of the voltage scale
 };
 
 // Importing global variables from other modules
@@ -66,11 +66,24 @@ void lcd_plot_func(float fVoltsPerDiv, tContext * sContext) {
     // Yellow function
     GrContextForegroundSet(sContext, ClrYellow);
 
-    // Iterate through the buffer and draw out points to screen
-    for (i = 0; i < FULL_SCREEN_SIZE; i++) {
-        uint16_t x = i;
-        uint16_t y = adc_y_scaling(fVoltsPerDiv, gScreenBuffer[i]);
-        GrPixelDraw(sContext, /*x*/ x, /*y*/ y);
+    // Starting point
+    uint16_t x = 0;
+    uint16_t y = adc_y_scaling(fVoltsPerDiv, gScreenBuffer[0]);
+    GrPixelDraw(sContext, /*x*/ x, /*y*/ y);
+
+    // Iterate through the rest of the buffer and draw out lines to screen
+    for (i = 1; i < FULL_SCREEN_SIZE; i++) {
+
+        // Copy over the last x,y values so we can draw a line
+        uint16_t last_x = x;
+        uint16_t last_y = y;
+
+        // Get the new x and y
+        x = i;
+        y = adc_y_scaling(fVoltsPerDiv, gScreenBuffer[i]);
+
+        // Now draw the line from 2 points
+        GrLineDraw(sContext, last_x, last_y, x, y );
     }
 }
 
@@ -79,8 +92,8 @@ void lcd_plot_grid(tContext * sContext) {
 
     // Iteration index
     int i = 0;
-//
-//    // Drawing the grids in dark blue
+
+    // Drawing the grids in dark blue
     GrContextForegroundSet(sContext, ClrMidnightBlue);
     for (i = 0; i < 7; i++) {
         GrLineDrawH(sContext, 0, 128, PIXELS_PER_DIV * i + 4);

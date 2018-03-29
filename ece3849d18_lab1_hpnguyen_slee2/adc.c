@@ -74,7 +74,6 @@ void ADCinit(void) {
 void ADC_ISR(void) {
     // First thing first, clear the interrupt flag so we can exit
     ADC1_ISC_R = ADC_ISC_IN0;
-//    ADCIntClear(ADC1_BASE, 0);
 
     // Process the data coming in
     if (ADC1_OSTAT_R & ADC_OSTAT_OV0) { // check for ADC FIFO overflow
@@ -95,35 +94,24 @@ uint32_t adc_trigger_search(uint16_t pTrigger, uint8_t rising) {
     int32_t search_index = start_index;
 
     // Start looking for the trigger value
-    uint16_t search_iteration = 0;
     uint16_t drop_condition = ADC_BUFFER_SIZE >> 1;
     uint16_t current_value = gADCBuffer[search_index];
-    switch(rising) {
-    case 1: // case of rising edge
-        while (current_value < pTrigger) {
-            search_index = ADC_BUFFER_WRAP(search_index - 1);
-            current_value = gADCBuffer[search_index];
-            search_iteration++;
+    uint16_t last_value = gADCBuffer[ADC_BUFFER_WRAP(search_index + 1)];
+    uint16_t i = 0;
 
-            // If we have been searching for a while, drop the operation return the initial search index
-            if (search_iteration > drop_condition) return start_index;
-        }
-        break;
-
-    case 0: // case of falling edge
-        while (current_value > pTrigger) {
-            search_index = ADC_BUFFER_WRAP(search_index - 1);
-            current_value = gADCBuffer[search_index];
-            search_iteration++;
-
-            // If we have been searching for a while, drop the operation return the initial search index
-            if (search_iteration > drop_condition) return start_index;
-        }
-        break;
+    // Looking for trigger position
+    for (i = 0; i < drop_condition; i++) {
+        search_index = ADC_BUFFER_WRAP(search_index - 1);
+        last_value = current_value;
+        current_value = gADCBuffer[search_index];
+        if ((rising == 1) && (current_value >= pTrigger) && (last_value < pTrigger))
+            return search_index;
+        else if  ((rising == 0) && (current_value <= pTrigger) && (last_value > pTrigger))
+            return search_index;
     }
 
-    // Return based on the result of the search
-    return search_index;
+    // Well we failed, return the start index
+    return start_index;
 }
 
 // Copy samples half a screen behind and half a screen ahead of the trigger point
