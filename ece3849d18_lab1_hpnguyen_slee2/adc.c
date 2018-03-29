@@ -35,7 +35,6 @@ volatile int32_t gADCBufferIndex = ADC_BUFFER_SIZE - 1; // latest sample index
 volatile uint16_t gADCBuffer[ADC_BUFFER_SIZE];  // ring buffer
 volatile uint32_t gADCErrors; // number of missed ADC deadlines
 volatile uint16_t gScreenBuffer[FULL_SCREEN_SIZE] = {2047};
-//uint32_t gADCSamplingRate = 0;
 
 // Importing global variable
 extern uint32_t gSystemClock;
