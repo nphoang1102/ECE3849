@@ -3,20 +3,18 @@
  *
  * Gene Bogdanov    9/13/2017
  */
-/* XDCtools Header files */
-#include <xdc/std.h>
-#include <xdc/runtime/System.h>
-#include <xdc/cfg/global.h>
 
-/* BIOS Header files */
-#include <ti/sysbios/BIOS.h>
-#include <ti/sysbios/knl/Task.h>
+/* Importing header files */
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "driverlib/interrupt.h"
+// Import local header file
+#include "RTOS_helper.h"
+
 
 uint32_t gSystemClock = 120000000; // [Hz] system clock frequency
+
+void task0_func(UArg arg1, UArg arg2);
+void ButtonClockSignal(void);
+void ButtonTask(UArg arg0, UArg arg1);
 
 /*
  *  ======== main ========
@@ -32,16 +30,6 @@ int main(void)
 
     return (0);
 }
-
-void task0_func(UArg arg1, UArg arg2)
-{
-    IntMasterEnable();
-
-    while (true) {
-        // do nothing
-    }
-}
-
 
 // ======== main.c from lab1 starts here ========
 /*

@@ -24,6 +24,7 @@
 // Libraries from project
 #include "buttons.h"
 #include "adc.h"
+#include "RTOS_helper.h"
 
 // public globals
 volatile uint32_t gButtons = 0; // debounced button state, one per bit in the lowest bits
@@ -247,6 +248,34 @@ int ButtonGetQ(uint32_t *button_state) {
 }
 
 // Handler for ButtonClock, that will trigger the button scan
-void ButtonClockSignal(void) {
-    Semaphore_post(sem_buttonScan);
+ void ButtonClockSignal(void) {
+    Semaphore_post(sem_ButtonTask);
 }
+
+ // Mailbox where the Button Task posts button IDs
+  void ButtonTask(void){
+      while(1) {
+          Semaphore_pend(sem_ButtonTask, BIOS_WAIT_FOREVER);
+
+          // Mailbox stuff
+      }
+//      int msg;
+//      Mailbox_post(button_mailbox, &msg, BIOS_WAIT_FOREVER);
+  }
+
+/*
+void task0_func(UArg arg1, UArg arg2)
+{
+    IntMasterEnable();
+
+    while (true) {
+        // do nothing
+
+        Semaphore_pend(sem_ButtonTask, BIOS_WAIT_FOREVER);
+    }
+}
+
+
+
+
+*/
