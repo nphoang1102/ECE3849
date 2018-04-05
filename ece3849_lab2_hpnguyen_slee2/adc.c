@@ -52,7 +52,6 @@ void ADCinit(void) {
     // Setup the ADC clock
     uint32_t pll_frequency = SysCtlFrequencyGet(CRYSTAL_FREQUENCY);
     uint32_t pll_divisor = (pll_frequency - 1) / (16 * ADC_SAMPLING_RATE) + 1; //round up
-//    gADCSamplingRate = PLL_FREQUENCY / (16 * pll_divisor);
     ADCClockConfigSet(ADC1_BASE, ADC_CLOCK_SRC_PLL | ADC_CLOCK_RATE_FULL, pll_divisor);
 
     // Step configuration for ADC1
@@ -64,8 +63,8 @@ void ADCinit(void) {
     // Fire the interrupt and sequence now
     ADCSequenceEnable(ADC1_BASE, 0); // enable the sequence. it is now sampling
     ADCIntEnable(ADC1_BASE, 0); // enable sequence 0 interrupt in the ADC1 peripheral
-    IntPrioritySet(INT_ADC1SS0, ADC_INT_PRIORITY); // set ADC1 sequence 0 interrupt priority
-    IntEnable(INT_ADC1SS0); // enable ADC1 sequence 0 interrupt in int. controller
+//    IntPrioritySet(INT_ADC1SS0, ADC_INT_PRIORITY); // set ADC1 sequence 0 interrupt priority
+//    IntEnable(INT_ADC1SS0); // enable ADC1 sequence 0 interrupt in int. controller
 }
 
 

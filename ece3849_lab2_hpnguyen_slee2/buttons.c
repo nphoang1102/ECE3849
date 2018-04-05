@@ -49,8 +49,8 @@ void ButtonInit(void) {
     TimerEnable(TIMER0_BASE, TIMER_BOTH);
 
     // initialize interrupt controller to respond to timer interrupts
-    IntPrioritySet(INT_TIMER0A, BUTTON_INT_PRIORITY);
-    IntEnable(INT_TIMER0A);
+//    IntPrioritySet(INT_TIMER0A, BUTTON_INT_PRIORITY);
+//    IntEnable(INT_TIMER0A);
 
     // GPIO PJ0 and PJ1 = EK-TM4C1294XL buttons 1 and 2
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ);
@@ -244,4 +244,9 @@ int ButtonGetQ(uint32_t *button_state) {
 
     // Queue is empty
     return 0; // empty
+}
+
+// Handler for ButtonClock, that will trigger the button scan
+void ButtonClockSignal(void) {
+    Semaphore_post(sem_buttonScan);
 }

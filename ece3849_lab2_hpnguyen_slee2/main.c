@@ -90,7 +90,7 @@ int main(void)
     // Initialization here
     timer_oneshot_init();
     lcd_init();
-    ButtonInit(); // setup the ISR for our counter
+    ButtonInit(); // setup the ISR for our counter, will not need under RTOS anymore
 
     // Get unloaded tick count over 10ms and allocate memory for loaded tick count
     uint32_t count_unloaded = timer_load_count();
