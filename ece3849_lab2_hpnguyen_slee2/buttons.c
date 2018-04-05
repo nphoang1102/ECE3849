@@ -170,7 +170,7 @@ uint32_t ButtonAutoRepeat(void)
     return presses;
 }
 
-// ISR for button scanning and debouncing buttons
+// Button scanning and debouncing process
 void ButtonISR(void) {
     // First thing first, clear the interrupt flag so we can exit
     TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT); 
@@ -255,12 +255,14 @@ int ButtonGetQ(uint32_t *button_state) {
  // Mailbox where the Button Task posts button IDs
   void ButtonTask(void){
       while(1) {
+          // Pending for semaphore, post in Clock signal
           Semaphore_pend(sem_ButtonTask, BIOS_WAIT_FOREVER);
 
           // Mailbox stuff
+          uint16_t button_pressed;
+          Mailbox_post(Mailbox_Button, &button_pressed, BIOS_WAIT_FOREVER);
+
       }
-//      int msg;
-//      Mailbox_post(button_mailbox, &msg, BIOS_WAIT_FOREVER);
   }
 
 /*
