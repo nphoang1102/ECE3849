@@ -26,6 +26,7 @@
 #include "sysctl_pll.h"
 
 // Libraries from project
+#include "RTOS_helper.h"
 #include "adc.h"
 #include "buttons.h"
 #include "lcd_display.h"
@@ -115,14 +116,20 @@ uint32_t adc_trigger_search(uint16_t pTrigger, uint8_t rising) {
 }
 
 // Copy samples half a screen behind and half a screen ahead of the trigger point
-void adc_copy_buffer_samples(uint16_t pTrigger, uint8_t rising) {
+void adc_copy_buffer_samples(void) {
+
+    // Accessing shared variable from display, wrapping around semaphore pend and post
+    Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
+    uint16_t pTrigger = _disp.pTrigger;
+    uint8_t rising = _disp.rising;
+    Semaphore_post(sem_accessDisplay);
 
     // Index range for buffer copy
     uint32_t half_behind = ADC_BUFFER_WRAP(adc_trigger_search(pTrigger, rising) - HALF_SCREEN_SIZE);
     uint16_t current_index = 0;
     int i;
 
-    // Start copying over to our local buffer
+    // Start copying over to our local buffer, wrap around semaphore again because why not
     for (i = 0; i < FULL_SCREEN_SIZE; i++) {
         current_index = ADC_BUFFER_WRAP(half_behind + i);
         _adc.gScreenBuffer[i] = _adc.gADCBuffer[current_index];
@@ -133,4 +140,16 @@ void adc_copy_buffer_samples(uint16_t pTrigger, uint8_t rising) {
 uint16_t adc_y_scaling(float fVoltsPerDiv, uint16_t sample) {
     float fScale = (VIN_RANGE * PIXELS_PER_DIV)/((1 << ADC_BITS) * fVoltsPerDiv);
     return LCD_VERTICAL_MAX/2 - (int)roundf(fScale * ((int)sample - ADC_OFFSET));
+}
+
+// Waveform task to search for the trigger position
+void adc_waveform_task(void) {
+    while(1) {
+        // Pending to get unblock
+        Semaphore_pend(sem_waveformSignal ,BIOS_WAIT_FOREVER);
+
+        // Start copying buffer sample over
+        adc_copy_buffer_samples();
+
+    }
 }

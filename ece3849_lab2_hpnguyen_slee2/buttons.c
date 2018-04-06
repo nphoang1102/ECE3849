@@ -213,7 +213,6 @@ void ButtonHandlingTask(void) {
 
         // We're done, post back to the sempahore
         Semaphore_post(sem_accessDisplay);
-
     }
 }
 

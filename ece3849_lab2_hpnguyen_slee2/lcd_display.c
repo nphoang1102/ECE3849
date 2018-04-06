@@ -17,6 +17,7 @@
 // Library from project
 #include "lcd_display.h"
 #include "adc.h"
+#include "RTOS_helper.h"
 
 // Declaring global variables
 const float gVoltageScale[] = {0.1, 0.2, 0.5, 1.0}; // float value of the voltage scale
@@ -72,6 +73,9 @@ void lcd_plot_func(float fVoltsPerDiv, tContext * sContext) {
     // Yellow function
     GrContextForegroundSet(sContext, ClrYellow);
 
+    // Pend on the semaphore here before accessing the ADC shared data
+    Semaphore_pend(sem_accessADC, BIOS_WAIT_FOREVER);
+
     // Starting point
     uint16_t x = 0;
     uint16_t y = adc_y_scaling(fVoltsPerDiv, _adc.gScreenBuffer[0]);
@@ -91,6 +95,9 @@ void lcd_plot_func(float fVoltsPerDiv, tContext * sContext) {
         // Now draw the line from 2 points
         GrLineDraw(sContext, last_x, last_y, x, y );
     }
+
+    // Done with the variable accessing, post to semaphore now
+    Semaphore_post(sem_accessADC);
 }
 
 // Drawing grid onto the LCD screen
@@ -147,8 +154,18 @@ void lcd_draw_text(tContext * sContext, uint16_t time_scale, uint8_t voltsPerDiv
         break;
     }
 
-
     // Print out the CPU load
     snprintf(str, sizeof(str), "CPU load: %.1f%%", cpu_load);
     GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 120, /*opaque*/ false);
+}
+
+// Display task
+void lcd_display_task(void) {
+    while(1) {
+        // Pend on a semaphore until unblocked
+        Semaphore_pend(sem_dispUpdate, BIOS_WAIT_FOREVER);
+
+        // We're clear, proceed to display
+        lcd_show_screen();
+    }
 }
