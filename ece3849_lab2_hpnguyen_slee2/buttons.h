@@ -43,10 +43,13 @@
 #define BUTTON_QUEUE_LENGTH 16
 #define BUTTON_BUFFER_WRAP(i) ((i) & (BUTTON_QUEUE_LENGTH - 1))
 
-// Global variable
-extern volatile uint32_t gButtons;	// debounced button state, one per bit in the lowest bits
-extern uint32_t gJoystick[2];       // joystick coordinates
-extern uint32_t gADCSamplingRate;   // [Hz] actual ADC sampling rate
+// Struct for global variable storage
+struct Button {
+    uint16_t gButtons;
+    uint32_t gJoystick[2];
+    uint32_t gADCSamplingRate;
+};
+extern struct Button _butt;
 
 /* Function prototypes */
 void ButtonInit(void); // initialize all button and joystick handling hardware
@@ -54,6 +57,5 @@ uint16_t ButtonGetState(void); // scan for the current buttons states
 void ButtonDebounce(uint32_t buttons); // update the debounced button state in the global variable gButtons the input argument is a bitmap of raw button state from the hardware
 void ButtonReadJoystick(void); // sample joystick and convert to button presses
 uint32_t ButtonAutoRepeat(void); // autorepeat button presses if a button is held long enough
-int ButtonHandling(uint8_t *rising, uint8_t *voltsPerDivPointer, uint16_t *time_scale); // button handling from user input
 
 #endif /* BUTTONS_H_ */

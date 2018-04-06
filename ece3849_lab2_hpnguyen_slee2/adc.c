@@ -30,11 +30,13 @@
 #include "buttons.h"
 #include "lcd_display.h"
 
-// Global variable declaration
-volatile int32_t gADCBufferIndex = ADC_BUFFER_SIZE - 1; // latest sample index
-volatile uint16_t gADCBuffer[ADC_BUFFER_SIZE];  // ring buffer
-volatile uint32_t gADCErrors; // number of missed ADC deadlines
-volatile uint16_t gScreenBuffer[FULL_SCREEN_SIZE] = {2047};
+// Initialize struct space for global variable
+struct ADC _adc = {
+    (ADC_BUFFER_SIZE - 1), // latest sample index
+    {0}, // ring buffer
+    0, // number of missed ADC deadlines
+    {2047} // initialize screen buffer to 0 value on the screen
+};
 
 // Importing global variable
 extern uint32_t gSystemClock;
@@ -75,11 +77,11 @@ void ADC_ISR(void) {
 
     // Process the data coming in
     if (ADC1_OSTAT_R & ADC_OSTAT_OV0) { // check for ADC FIFO overflow
-         gADCErrors++; // count errors
+         _adc.gADCErrors++; // count errors
          ADC1_OSTAT_R = ADC_OSTAT_OV0; // clear overflow condition
      }
-     gADCBuffer[
-         gADCBufferIndex = ADC_BUFFER_WRAP(gADCBufferIndex + 1)
+     _adc.gADCBuffer[
+         _adc.gADCBufferIndex = ADC_BUFFER_WRAP(_adc.gADCBufferIndex + 1)
      ] = ADC1_SSFIFO0_R; // read sample from the ADC1 sequence 0 FIFO
 
 }
@@ -88,20 +90,20 @@ void ADC_ISR(void) {
 uint32_t adc_trigger_search(uint16_t pTrigger, uint8_t rising) {
 
     // Choose a starting point for our buffer search
-    int32_t start_index = ADC_BUFFER_WRAP(gADCBufferIndex - HALF_SCREEN_SIZE);
+    int32_t start_index = ADC_BUFFER_WRAP(_adc.gADCBufferIndex - HALF_SCREEN_SIZE);
     int32_t search_index = start_index;
 
     // Start looking for the trigger value
     uint16_t drop_condition = ADC_BUFFER_SIZE >> 1;
-    uint16_t current_value = gADCBuffer[search_index];
-    uint16_t last_value = gADCBuffer[ADC_BUFFER_WRAP(search_index + 1)];
+    uint16_t current_value = _adc.gADCBuffer[search_index];
+    uint16_t last_value = _adc.gADCBuffer[ADC_BUFFER_WRAP(search_index + 1)];
     uint16_t i = 0;
 
     // Looking for trigger position
     for (i = 0; i < drop_condition; i++) {
         search_index = ADC_BUFFER_WRAP(search_index - 1);
         last_value = current_value;
-        current_value = gADCBuffer[search_index];
+        current_value = _adc.gADCBuffer[search_index];
         if ((rising == 1) && (current_value >= pTrigger) && (last_value < pTrigger))
             return search_index;
         else if  ((rising == 0) && (current_value <= pTrigger) && (last_value > pTrigger))
@@ -123,7 +125,7 @@ void adc_copy_buffer_samples(uint16_t pTrigger, uint8_t rising) {
     // Start copying over to our local buffer
     for (i = 0; i < FULL_SCREEN_SIZE; i++) {
         current_index = ADC_BUFFER_WRAP(half_behind + i);
-        gScreenBuffer[i] = gADCBuffer[current_index];
+        _adc.gScreenBuffer[i] = _adc.gADCBuffer[current_index];
     }
 }
 

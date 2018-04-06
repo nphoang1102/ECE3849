@@ -33,9 +33,6 @@ struct Display _disp = {
     0.0 // CPU starts at no load
 };
 
-// Importing global variables from other modules
-extern uint16_t gScreenBuffer[FULL_SCREEN_SIZE];
-
 // Screen initialization
 void lcd_init() {
 
@@ -77,7 +74,7 @@ void lcd_plot_func(float fVoltsPerDiv, tContext * sContext) {
 
     // Starting point
     uint16_t x = 0;
-    uint16_t y = adc_y_scaling(fVoltsPerDiv, gScreenBuffer[0]);
+    uint16_t y = adc_y_scaling(fVoltsPerDiv, _adc.gScreenBuffer[0]);
     GrPixelDraw(sContext, /*x*/ x, /*y*/ y);
 
     // Iterate through the rest of the buffer and draw out lines to screen
@@ -89,7 +86,7 @@ void lcd_plot_func(float fVoltsPerDiv, tContext * sContext) {
 
         // Get the new x and y
         x = i;
-        y = adc_y_scaling(fVoltsPerDiv, gScreenBuffer[i]);
+        y = adc_y_scaling(fVoltsPerDiv, _adc.gScreenBuffer[i]);
 
         // Now draw the line from 2 points
         GrLineDraw(sContext, last_x, last_y, x, y );

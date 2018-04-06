@@ -27,18 +27,15 @@
 #include "adc.h"
 #include "RTOS_helper.h"
 
-// public globals
-volatile uint32_t gButtons = 0; // debounced button state, one per bit in the lowest bits
-                                // button is pressed if its bit is 1, not pressed if 0
-uint32_t buttonQ[BUTTON_QUEUE_LENGTH] = {0}; // buffer for FIFO queue
-volatile uint8_t buttonQhead = 0;
-volatile uint8_t buttonQtail = 0;
-uint32_t gJoystick[2] = {0};    // joystick coordinates
-uint32_t gADCSamplingRate;      // [Hz] actual ADC sampling rate
+// Initialize global space for variable storage
+struct Button _butt = {
+    0, // debounced button state, one per bit in the lowest bits
+       // button is pressed if its bit is 1, not pressed if 0
+    {0}, // joystick coordinates
+};
 
 // imported globals
 extern uint32_t gSystemClock;   // [Hz] system clock frequency
-extern volatile uint32_t gTime; // time in hundredths of a second
 
 // initialize all button and joystick handling hardware
 void ButtonInit(void) {
@@ -86,7 +83,7 @@ void ButtonInit(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
     uint32_t pll_frequency = SysCtlFrequencyGet(CRYSTAL_FREQUENCY);
     uint32_t pll_divisor = (pll_frequency - 1) / (16 * ADC_SAMPLING_RATE) + 1; // round divisor up
-    gADCSamplingRate = pll_frequency / (16 * pll_divisor); // actual sampling rate may differ from ADC_SAMPLING_RATE
+    _butt.gADCSamplingRate = pll_frequency / (16 * pll_divisor); // actual sampling rate may differ from ADC_SAMPLING_RATE
     ADCClockConfigSet(ADC0_BASE, ADC_CLOCK_SRC_PLL | ADC_CLOCK_RATE_FULL, pll_divisor); // only ADC0 has PLL clock divisor control
 
     // initialize ADC sampling sequence
@@ -114,7 +111,7 @@ void ButtonDebounce(uint32_t buttons)
 			state[i] += BUTTON_STATE_INCREMENT;
 			if (state[i] >= BUTTON_PRESSED_STATE) {
 				state[i] = BUTTON_PRESSED_STATE;
-				gButtons |= mask; // update debounced button state
+				_butt.gButtons |= mask; // update debounced button state
 			}
 		}
 
@@ -123,7 +120,7 @@ void ButtonDebounce(uint32_t buttons)
 			state[i] -= BUTTON_STATE_DECREMENT;
 			if (state[i] <= 0) {
 				state[i] = 0;
-				gButtons &= ~mask;
+				_butt.gButtons &= ~mask;
 			}
 		}
 	}
@@ -134,21 +131,21 @@ void ButtonReadJoystick(void)
 {
     ADCProcessorTrigger(ADC0_BASE, 0);          // trigger the ADC sample sequence for Joystick X and Y
     while(!ADCIntStatus(ADC0_BASE, 0, false));  // wait until the sample sequence has completed
-    ADCSequenceDataGet(ADC0_BASE, 0, gJoystick);// retrieve joystick data
+    ADCSequenceDataGet(ADC0_BASE, 0, _butt.gJoystick);// retrieve joystick data
     ADCIntClear(ADC0_BASE, 0);                  // clear ADC sequence interrupt flag
 
     // process joystick movements as button presses using hysteresis
-    if (gJoystick[0] > JOYSTICK_UPPER_PRESS_THRESHOLD) gButtons |= 1 << 5; // joystick right in position 5
-    if (gJoystick[0] < JOYSTICK_UPPER_RELEASE_THRESHOLD) gButtons &= ~(1 << 5);
+    if (_butt.gJoystick[0] > JOYSTICK_UPPER_PRESS_THRESHOLD) _butt.gButtons |= 1 << 5; // joystick right in position 5
+    if (_butt.gJoystick[0] < JOYSTICK_UPPER_RELEASE_THRESHOLD) _butt.gButtons &= ~(1 << 5);
 
-    if (gJoystick[0] < JOYSTICK_LOWER_PRESS_THRESHOLD) gButtons |= 1 << 6; // joystick left in position 6
-    if (gJoystick[0] > JOYSTICK_LOWER_RELEASE_THRESHOLD) gButtons &= ~(1 << 6);
+    if (_butt.gJoystick[0] < JOYSTICK_LOWER_PRESS_THRESHOLD) _butt.gButtons |= 1 << 6; // joystick left in position 6
+    if (_butt.gJoystick[0] > JOYSTICK_LOWER_RELEASE_THRESHOLD) _butt.gButtons &= ~(1 << 6);
 
-    if (gJoystick[1] > JOYSTICK_UPPER_PRESS_THRESHOLD) gButtons |= 1 << 7; // joystick up in position 7
-    if (gJoystick[1] < JOYSTICK_UPPER_RELEASE_THRESHOLD) gButtons &= ~(1 << 7);
+    if (_butt.gJoystick[1] > JOYSTICK_UPPER_PRESS_THRESHOLD) _butt.gButtons |= 1 << 7; // joystick up in position 7
+    if (_butt.gJoystick[1] < JOYSTICK_UPPER_RELEASE_THRESHOLD) _butt.gButtons &= ~(1 << 7);
 
-    if (gJoystick[1] < JOYSTICK_LOWER_PRESS_THRESHOLD) gButtons |= 1 << 8; // joystick down in position 8
-    if (gJoystick[1] > JOYSTICK_LOWER_RELEASE_THRESHOLD) gButtons &= ~(1 << 8);
+    if (_butt.gJoystick[1] < JOYSTICK_LOWER_PRESS_THRESHOLD) _butt.gButtons |= 1 << 8; // joystick down in position 8
+    if (_butt.gJoystick[1] > JOYSTICK_LOWER_RELEASE_THRESHOLD) _butt.gButtons &= ~(1 << 8);
 }
 
 // autorepeat button presses if a button is held long enough
@@ -160,7 +157,7 @@ uint32_t ButtonAutoRepeat(void)
     uint32_t presses = 0;
     for (i = 0; i < BUTTON_AND_JOYSTICK_COUNT; i++) {
         mask = 1 << i;
-        if (gButtons & mask)
+        if (_butt.gButtons & mask)
             count[i]++;     // increment count if button is held
         else
             count[i] = 0;   // reset count if button is let go
@@ -183,12 +180,12 @@ uint16_t ButtonGetState(void) {
             | ((~GPIOPinRead(GPIO_PORTD_BASE, 0xff) & (GPIO_PIN_4))); // BoosterPack Joystick Select
 
     // Debouncing and combining the digital and analog signal together into gButtons
-    uint32_t old_buttons = gButtons;    // save previous button state
+    uint32_t old_buttons = _butt.gButtons;    // save previous button state
     ButtonDebounce(gpio_buttons);       // Run the button debouncer. The result is in gButtons.
     ButtonReadJoystick();               // Convert joystick state to button presses. The result is in gButtons.
     
     // Check for button presses here to check repeat behavior
-    uint32_t presses = ~old_buttons & gButtons;   // detect button presses (transitions from not pressed to pressed)
+    uint32_t presses = ~old_buttons & _butt.gButtons;   // detect button presses (transitions from not pressed to pressed)
     presses |= ButtonAutoRepeat();      // autorepeat presses if a button is held long enough
 
     // Store button state into our FIFO queue only if we have changes
@@ -196,7 +193,7 @@ uint16_t ButtonGetState(void) {
 }
 
 // Helper function to pop elements from FIFO queue and handle 
-void ButtonHandlingTask(uint8_t *rising, uint8_t *voltsPerDivPointer, uint16_t *time_scale) {
+void ButtonHandlingTask(void) {
     uint16_t presses = 0;
     while(1) {
         // Pending on the mailbox for user input

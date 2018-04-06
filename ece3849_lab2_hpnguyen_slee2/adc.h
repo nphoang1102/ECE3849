@@ -12,6 +12,7 @@
 #define ADC_H_
 
 #include <stdint.h>
+#include "lcd_display.h"
 
 /* Macro definition */
 
@@ -30,6 +31,15 @@
 #define ADC_OFFSET 2048
 #define VIN_RANGE 3.3f
 #define ADC_BITS 12
+
+// Struct for global variable storage
+struct ADC {
+    int32_t gADCBufferIndex;
+    uint16_t gADCBuffer[ADC_BUFFER_SIZE];
+    uint32_t gADCErrors;
+    uint16_t gScreenBuffer[FULL_SCREEN_SIZE];
+};
+extern struct ADC _adc;
 
 /* Function prototypes */
 void ADCinit(void); // initialize ADC1 for data sampling
