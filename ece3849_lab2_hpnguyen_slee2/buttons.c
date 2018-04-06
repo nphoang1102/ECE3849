@@ -22,6 +22,7 @@
 #include "sysctl_pll.h"
 
 // Libraries from project
+#include "lcd_display.h"
 #include "buttons.h"
 #include "adc.h"
 #include "RTOS_helper.h"
@@ -171,9 +172,9 @@ uint32_t ButtonAutoRepeat(void)
 }
 
 // Button scanning and debouncing process
-void ButtonISR(void) {
+uint16_t ButtonGetState(void) {
     // First thing first, clear the interrupt flag so we can exit
-    TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT); 
+//    TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 
     // Read hardware digital button state
     uint32_t gpio_buttons = (~GPIOPinRead(GPIO_PORTJ_BASE, 0xff) & (GPIO_PIN_1 | GPIO_PIN_0)) // EK-TM4C1294XL buttons in positions 0 and 1
@@ -191,93 +192,51 @@ void ButtonISR(void) {
     presses |= ButtonAutoRepeat();      // autorepeat presses if a button is held long enough
 
     // Store button state into our FIFO queue only if we have changes
-    if (presses != old_buttons) ButtonPutQ(presses);
+    return presses;
 }
 
 // Helper function to pop elements from FIFO queue and handle 
-int ButtonHandling(uint8_t *rising, uint8_t *voltsPerDivPointer, uint16_t *time_scale) {
+void ButtonHandlingTask(uint8_t *rising, uint8_t *voltsPerDivPointer, uint16_t *time_scale) {
+    uint16_t presses = 0;
+    while(1) {
+        // Pending on the mailbox for user input
+        Mailbox_pend(Mailbox_Button, &presses, BIOS_WAIT_FOREVER);
 
-    // First thing first, pop the queue, return if empty
-    uint32_t presses = 0;
-    if (ButtonGetQ(&presses)) {
+        // Take the semaphore and start handling button pressed here
+        Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
+
         // handling ESR_SW1, change the trigger edge
-        if (presses & (1<<4)) *rising = (*rising + 1) & 1;
+        if (presses & (1<<4)) _disp.rising = (_disp.rising + 1) & 1;
 
         // handling pushing the joystick up, increase the voltage scale
-        if (presses & (1<<7)) *voltsPerDivPointer = (*voltsPerDivPointer + 1) & ((1<<2)-1);
+        if (presses & (1<<7)) _disp.voltsPerDivPointer = (_disp.voltsPerDivPointer + 1) & ((1<<2)-1);
 
         // handling pushing the joystick down, decrease the voltage scale
-        if (presses & (1<<8)) *voltsPerDivPointer = (*voltsPerDivPointer - 1) & ((1<<2)-1);
+        if (presses & (1<<8)) _disp.voltsPerDivPointer = (_disp.voltsPerDivPointer - 1) & ((1<<2)-1);
 
-        return 1;
+        // We're done, post back to the sempahore
+        Semaphore_post(sem_accessDisplay);
+
     }
-    else return 0;
-}
-
-// Helper function to store button signal into a FIFO
-int ButtonPutQ(uint32_t button_bitmap) {
-
-    // Creating new tail and wrap
-    int new_tail = BUTTON_BUFFER_WRAP(buttonQtail + 1);
-    
-    // Check if full and proceed to add data to queue
-    if (buttonQhead != new_tail) {
-        buttonQ[buttonQtail] = button_bitmap;
-        buttonQtail = new_tail; 
-        return 1;
-    }
-
-    // Queue is full
-    return 0; // full
-}
-
-// Helper function to get store button signal from a FIFO
-int ButtonGetQ(uint32_t *button_state) {
-    
-    // Check if empty and proceed to fetch data from FIFO
-    if (buttonQhead != buttonQtail) {
-        *button_state = buttonQ[buttonQhead];
-        IntMasterDisable();
-        buttonQhead = BUTTON_BUFFER_WRAP(buttonQhead + 1);
-        IntMasterEnable();
-        return 1;
-    }
-
-    // Queue is empty
-    return 0; // empty
 }
 
 // Handler for ButtonClock, that will trigger the button scan
- void ButtonClockSignal(void) {
+void ButtonClockSignal(void) {
     Semaphore_post(sem_ButtonTask);
 }
 
  // Mailbox where the Button Task posts button IDs
-  void ButtonTask(void){
-      while(1) {
-          // Pending for semaphore, post in Clock signal
-          Semaphore_pend(sem_ButtonTask, BIOS_WAIT_FOREVER);
-
-          // Mailbox stuff
-          uint16_t button_pressed;
-          Mailbox_post(Mailbox_Button, &button_pressed, BIOS_WAIT_FOREVER);
-
-      }
-  }
-
-/*
-void task0_func(UArg arg1, UArg arg2)
-{
-    IntMasterEnable();
-
-    while (true) {
-        // do nothing
-
+void ButtonMailboxTask(void){
+    uint16_t button_pressed;
+    uint16_t last_pressed = 0;
+    while(1) {
+        // Pending for semaphore, post in Clock signal
         Semaphore_pend(sem_ButtonTask, BIOS_WAIT_FOREVER);
+
+        // Only add new state into the mailbox if changes were made
+        button_pressed = ButtonGetState();
+        if (button_pressed != last_pressed)
+            Mailbox_post(Mailbox_Button, &button_pressed, BIOS_WAIT_FOREVER);
+        last_pressed = button_pressed;
     }
 }
-
-
-
-
-*/

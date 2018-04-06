@@ -50,11 +50,10 @@ extern uint32_t gADCSamplingRate;   // [Hz] actual ADC sampling rate
 
 /* Function prototypes */
 void ButtonInit(void); // initialize all button and joystick handling hardware
+uint16_t ButtonGetState(void); // scan for the current buttons states
 void ButtonDebounce(uint32_t buttons); // update the debounced button state in the global variable gButtons the input argument is a bitmap of raw button state from the hardware
 void ButtonReadJoystick(void); // sample joystick and convert to button presses
 uint32_t ButtonAutoRepeat(void); // autorepeat button presses if a button is held long enough
-int ButtonPutQ(uint32_t button_bitmap); // putting button read into FIFO queue
-int ButtonGetQ(uint32_t *button_state); // getting button read out of the FIFO queue
 int ButtonHandling(uint8_t *rising, uint8_t *voltsPerDivPointer, uint16_t *time_scale); // button handling from user input
 
 #endif /* BUTTONS_H_ */

@@ -24,6 +24,15 @@ const char * const gVoltageScaleStr[] = {
     "100 mV", "200 mV", "500 mV", "1.00 V" //text value of the voltage scale
 };
 
+// Initializing global space for variable storage
+struct Display _disp = {
+    1, // default rising edge trigger
+    2048, // default trigger point set to 0V
+    3, // default volts per grid is 1V
+    20, // default time scale per grid is 20us
+    0.0 // CPU starts at no load
+};
+
 // Importing global variables from other modules
 extern uint16_t gScreenBuffer[FULL_SCREEN_SIZE];
 
@@ -36,7 +45,7 @@ void lcd_init() {
 }
 
 // Plot the whole oscillator screen
-void lcd_show_screen(uint8_t voltsPerDivPointer, uint16_t time_scale, float cpu_load, uint8_t trigger) {
+void lcd_show_screen(void) {
 
     // Create some pointers to fill in
     tContext sContext;
@@ -50,8 +59,8 @@ void lcd_show_screen(uint8_t voltsPerDivPointer, uint16_t time_scale, float cpu_
 
     // Plotting everything onto the screen and flush once
     lcd_plot_grid(&sContext);
-    lcd_plot_func(gVoltageScale[voltsPerDivPointer], &sContext);
-    lcd_draw_text(&sContext, time_scale, voltsPerDivPointer, cpu_load, trigger);
+    lcd_plot_func(gVoltageScale[_disp.voltsPerDivPointer], &sContext);
+    lcd_draw_text(&sContext, _disp.time_scale, _disp.voltsPerDivPointer, _disp.cpu_load, _disp.pTrigger);
 
     // Flush out to screen
     GrFlush(&sContext);
