@@ -37,7 +37,6 @@ struct ADC {
     int32_t gADCBufferIndex;
     uint16_t gADCBuffer[ADC_BUFFER_SIZE];
     uint32_t gADCErrors;
-    uint16_t gScreenBuffer[FULL_SCREEN_SIZE];
 };
 extern struct ADC _adc;
 

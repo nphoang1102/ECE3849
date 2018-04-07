@@ -74,11 +74,11 @@ void lcd_plot_func(float fVoltsPerDiv, tContext * sContext) {
     GrContextForegroundSet(sContext, ClrYellow);
 
     // Pend on the semaphore here before accessing the ADC shared data
-    Semaphore_pend(sem_accessADC, BIOS_WAIT_FOREVER);
+    Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
 
     // Starting point
     uint16_t x = 0;
-    uint16_t y = adc_y_scaling(fVoltsPerDiv, _adc.gScreenBuffer[0]);
+    uint16_t y = _disp.scaledScreenBuffer[0];
     GrPixelDraw(sContext, /*x*/ x, /*y*/ y);
 
     // Iterate through the rest of the buffer and draw out lines to screen
@@ -90,14 +90,14 @@ void lcd_plot_func(float fVoltsPerDiv, tContext * sContext) {
 
         // Get the new x and y
         x = i;
-        y = adc_y_scaling(fVoltsPerDiv, _adc.gScreenBuffer[i]);
+        y = _disp.scaledScreenBuffer[i];
 
         // Now draw the line from 2 points
         GrLineDraw(sContext, last_x, last_y, x, y );
     }
 
     // Done with the variable accessing, post to semaphore now
-    Semaphore_post(sem_accessADC);
+    Semaphore_post(sem_accessDisplay);
 }
 
 // Drawing grid onto the LCD screen
@@ -167,5 +167,40 @@ void lcd_display_task(void) {
 
         // We're clear, proceed to display
         lcd_show_screen();
+    }
+}
+
+// Processing task for normal mode and spectrum mode
+void lcd_process_task(void) {
+    while(1) {
+        // Pend on a semaphore until unblocked
+        Semaphore_pend(sem_processingSignal, BIOS_WAIT_FOREVER);
+
+        // Pend on semaphore before accessing the global variable
+        Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
+
+        // Clear now, start the computational process
+        uint8_t dispMode = _disp.dispMode;
+        uint16_t i = 0;
+        switch(dispMode) { // calculations based on mode of operation
+            case 0: // spectrum mode
+                /* CODE TO BE INSERTED SOON tm */
+                break;
+
+            case 1: // normal mode
+                for (i = 0; i < FULL_SCREEN_SIZE; i++) {
+                    _disp.scaledScreenBuffer[i] = adc_y_scaling(gVoltageScale[_disp.voltsPerDivPointer], _disp.rawScreenBuffer[i]);
+                }
+                break;
+        }
+
+        // Done with the calculations, post to semaphore again
+        Semaphore_post(sem_accessDisplay);
+
+        // Done computation, signal the display task to display
+        Semaphore_post(sem_dispUpdate);
+
+        // Then signal the ADC to capture some more buffer
+        Semaphore_post(sem_waveformSignal);
     }
 }

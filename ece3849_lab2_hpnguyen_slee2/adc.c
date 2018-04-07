@@ -36,7 +36,6 @@ struct ADC _adc = {
     (ADC_BUFFER_SIZE - 1), // latest sample index
     {0}, // ring buffer
     0, // number of missed ADC deadlines
-    {2047} // initialize screen buffer to 0 value on the screen
 };
 
 // Importing global variable
@@ -118,22 +117,40 @@ uint32_t adc_trigger_search(uint16_t pTrigger, uint8_t rising) {
 // Copy samples half a screen behind and half a screen ahead of the trigger point
 void adc_copy_buffer_samples(void) {
 
-    // Accessing shared variable from display, wrapping around semaphore pend and post
+    // Accessing the screen global variables from display, wrapping around semaphore pend and post
     Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
     uint16_t pTrigger = _disp.pTrigger;
     uint8_t rising = _disp.rising;
-    Semaphore_post(sem_accessDisplay);
+    
+    // Preparing the variable for copy
+    uint8_t dispMode = _disp.dispMode;
+    uint16_t iteration = 0;
+    uint16_t start_pos = 0;
 
-    // Index range for buffer copy
-    uint32_t half_behind = ADC_BUFFER_WRAP(adc_trigger_search(pTrigger, rising) - HALF_SCREEN_SIZE);
+    // Choosing how much to copy based on mode of operation
+    switch(dispMode) {
+        case 0:
+            iteration = SPECTRUM_SCREEN_SIZE; // 1024 samples
+            start_pos = ADC_BUFFER_WRAP(_adc.gADCBufferIndex - SPECTRUM_SCREEN_SIZE); // 1024 sapmles behind the latest sample
+            break;
+        case 1:
+            iteration = FULL_SCREEN_SIZE; // full screen 128 samples
+            start_pos = ADC_BUFFER_WRAP(adc_trigger_search(pTrigger, rising) - HALF_SCREEN_SIZE); // half screen behind the trigger point
+            break;
+    }
+
+    // Preparing variable for loop iteration
     uint16_t current_index = 0;
     int i;
 
     // Start copying over to our local buffer, wrap around semaphore again because why not
-    for (i = 0; i < FULL_SCREEN_SIZE; i++) {
-        current_index = ADC_BUFFER_WRAP(half_behind + i);
-        _adc.gScreenBuffer[i] = _adc.gADCBuffer[current_index];
+    for (i = 0; i < iteration; i++) {
+        current_index = ADC_BUFFER_WRAP(start_pos + i);
+        _disp.rawScreenBuffer[i] = _adc.gADCBuffer[current_index];
     }
+
+    // Finish accessing the screen global variables, releasing now
+    Semaphore_post(sem_accessDisplay);
 }
 
 // Scaling the ADC sample in the vertical direction
@@ -150,6 +167,9 @@ void adc_waveform_task(void) {
 
         // Start copying buffer sample over
         adc_copy_buffer_samples();
+
+        // Done copying, post to the processing task
+        Semaphore_post(sem_processingSignal);
 
     }
 }

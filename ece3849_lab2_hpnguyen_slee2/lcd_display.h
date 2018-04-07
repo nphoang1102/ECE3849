@@ -18,6 +18,7 @@
 // Screen constants
 #define FULL_SCREEN_SIZE 128 // self explanatory
 #define HALF_SCREEN_SIZE 64 // half of 128 pixels
+#define SPECTRUM_SCREEN_SIZE 1024 // number of readings required for spectrum mode
 
 // Plotting constant
 #define PIXELS_PER_DIV 20
@@ -29,6 +30,10 @@ struct Display {
     uint8_t voltsPerDivPointer; // Pointer to the volts per division array
     uint16_t time_scale; // Time scale per grid
     float cpu_load; // CPU load average over 10ms time interval
+    uint8_t dispMode; // Display mode, 1 for normal oscilloscope, 0 for spectrum mode
+    uint16_t rawScreenBuffer[SPECTRUM_SCREEN_SIZE]; // raw copy of the screen buffer
+    uint16_t scaledScreenBuffer[SPECTRUM_SCREEN_SIZE]; // output of the screen buffer after processed
+
 };
 extern struct Display _disp;
 
