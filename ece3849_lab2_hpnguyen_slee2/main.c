@@ -50,6 +50,8 @@ int main(void)
     /* Start BIOS */
     BIOS_start();
 
+    /* DO NOT PUT ANY CODE BELOW THIS, AS THE BIOS_start() IS A FOREVER LOOP */
+
     return (0);
 }
 

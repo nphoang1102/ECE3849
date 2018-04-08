@@ -40,12 +40,12 @@ extern uint32_t gSystemClock;   // [Hz] system clock frequency
 // initialize all button and joystick handling hardware
 void ButtonInit(void) {
     // initialize a general purpose timer for periodic interrupts
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
-    TimerDisable(TIMER0_BASE, TIMER_BOTH);
-    TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
-    TimerLoadSet(TIMER0_BASE, TIMER_A, (float)gSystemClock / BUTTON_SCAN_RATE - 0.5f);
-    TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
-    TimerEnable(TIMER0_BASE, TIMER_BOTH);
+//    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
+//    TimerDisable(TIMER0_BASE, TIMER_BOTH);
+//    TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
+//    TimerLoadSet(TIMER0_BASE, TIMER_A, (float)gSystemClock / BUTTON_SCAN_RATE - 0.5f);
+//    TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+//    TimerEnable(TIMER0_BASE, TIMER_BOTH);
 
     // initialize interrupt controller to respond to timer interrupts
 //    IntPrioritySet(INT_TIMER0A, BUTTON_INT_PRIORITY);
@@ -223,6 +223,7 @@ void ButtonClockSignal(void) {
 
  // Mailbox where the Button Task posts button IDs
 void ButtonMailboxTask(void){
+    IntMasterEnable();
     uint16_t button_pressed;
     uint16_t last_pressed = 0;
     while(1) {
