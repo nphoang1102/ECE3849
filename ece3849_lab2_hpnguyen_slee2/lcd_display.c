@@ -31,7 +31,10 @@ struct Display _disp = {
     2048, // default trigger point set to 0V
     3, // default volts per grid is 1V
     20, // default time scale per grid is 20us
-    0.0 // CPU starts at no load
+    0.0, // CPU starts at no load
+    1, // oscilloscope mode on startup
+    {0}, // initialize the screen buffer before copying stuffs in here
+    {0}
 };
 
 // Screen initialization
@@ -58,7 +61,7 @@ void lcd_show_screen(void) {
     // Plotting everything onto the screen and flush once
     lcd_plot_grid(&sContext);
     lcd_plot_func(gVoltageScale[_disp.voltsPerDivPointer], &sContext);
-    lcd_draw_text(&sContext, _disp.time_scale, _disp.voltsPerDivPointer, _disp.cpu_load, _disp.pTrigger);
+    lcd_draw_text(&sContext, _disp.time_scale, _disp.voltsPerDivPointer, _disp.cpu_load, _disp.rising);
 
     // Flush out to screen
     GrFlush(&sContext);
