@@ -40,6 +40,7 @@ struct ADC _adc = {
 
 // Importing global variable
 extern uint32_t gSystemClock;
+extern const float gVoltageScale[];
 
 // Initialize ADC1 for oscillator
 void ADCinit(void) {
@@ -159,6 +160,11 @@ uint16_t adc_y_scaling(float fVoltsPerDiv, uint16_t sample) {
     return LCD_VERTICAL_MAX/2 - (int)roundf(fScale * ((int)sample - ADC_OFFSET));
 }
 
+// Kiss FFT package handler here
+void adc_kiss_fft(void) {
+    
+}
+
 // Waveform task to search for the trigger position
 void adc_waveform_task(void) {
     while(1) {
@@ -171,5 +177,42 @@ void adc_waveform_task(void) {
         // Done copying, post to the processing task
         Semaphore_post(sem_processingSignal);
 
+    }
+}
+
+// Processing task for normal mode and spectrum mode
+void adc_process_task(void) {
+    while(1) {
+        // Pend on a semaphore until unblocked
+        Semaphore_pend(sem_processingSignal, BIOS_WAIT_FOREVER);
+
+        // Pend on semaphore before accessing the global variable
+        Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
+
+        // Clear now, start the computational process
+        uint8_t dispMode = _disp.dispMode;
+        uint16_t i = 0;
+        float fVoltageScale = gVoltageScale[_disp.voltsPerDivPointer];
+        switch(dispMode) { // calculations based on mode of operation
+            case 0: // spectrum mode
+                /* CODE TO BE INSERTED SOON tm */
+                adc_kiss_fft();
+                break;
+
+            case 1: // normal mode
+                for (i = 0; i < FULL_SCREEN_SIZE; i++) {
+                    _disp.scaledScreenBuffer[i] = adc_y_scaling(fVoltageScale, _disp.rawScreenBuffer[i]);
+                }
+                break;
+        }
+
+        // Done with the calculations, post to semaphore again
+        Semaphore_post(sem_accessDisplay);
+
+        // Done computation, signal the display task to display
+        Semaphore_post(sem_dispUpdate);
+
+        // Then signal the ADC to capture some more buffer
+        Semaphore_post(sem_waveformSignal);
     }
 }

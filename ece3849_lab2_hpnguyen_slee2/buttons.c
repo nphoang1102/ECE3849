@@ -211,6 +211,9 @@ void ButtonHandlingTask(void) {
         // handling pushing the joystick down, decrease the voltage scale
         if (presses & (1<<8)) _disp.voltsPerDivPointer = (_disp.voltsPerDivPointer - 1) & ((1<<2)-1);
 
+        // handling pushing the S2 button, switching mode of operation
+        if (presses & (1<<3)) _disp.dispMode = (_disp.dispMode + 1) & 1;
+
         // We're done, post back to the sempahore
         Semaphore_post(sem_accessDisplay);
     }

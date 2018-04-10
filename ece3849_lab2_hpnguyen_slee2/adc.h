@@ -45,5 +45,6 @@ void ADCinit(void); // initialize ADC1 for data sampling
 uint32_t adc_trigger_search(uint16_t pTrigger, uint8_t rising); // searching for the trigger index position
 void adc_copy_buffer_samples(void); // copy a screen worth of samples to a buffer
 uint16_t adc_y_scaling(float fVoltsPerDiv, uint16_t sample); // scaling the ADC sample in the vertical direction
+void adc_kiss_fft(void); // handler of the Kiss FFT package
 
 #endif /* ADC_H_ */

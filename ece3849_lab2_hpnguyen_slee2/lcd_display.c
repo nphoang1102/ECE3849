@@ -60,21 +60,34 @@ void lcd_show_screen(void) {
 
     // Plotting everything onto the screen and flush once
     lcd_plot_grid(&sContext);
-    lcd_plot_func(gVoltageScale[_disp.voltsPerDivPointer], &sContext);
-    lcd_draw_text(&sContext, _disp.time_scale, _disp.voltsPerDivPointer, _disp.cpu_load, _disp.rising);
+    lcd_plot_func(&sContext);
+    lcd_draw_text(&sContext);
 
     // Flush out to screen
     GrFlush(&sContext);
 }
 
 // Plot the function based on the local buffer
-void lcd_plot_func(float fVoltsPerDiv, tContext * sContext) {
+void lcd_plot_func(tContext * sContext) {
 
     // Iteration index
     int i = 0;
 
-    // Yellow function
-    GrContextForegroundSet(sContext, ClrYellow);
+    // Access the current mode of operation to plot accordingly
+    Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
+    uint8_t dispMode = _disp.dispMode;
+    Semaphore_post(sem_accessDisplay);
+
+    // Function color depending on current mode of operation
+    switch (dispMode) {
+        case 0: // Spectrum mode has orange function
+            GrContextForegroundSet(sContext, ClrOrange);
+            break;
+
+        case 1: // Normal mode has yellow function
+            GrContextForegroundSet(sContext, ClrYellow);
+            break;
+    }
 
     // Pend on the semaphore here before accessing the ADC shared data
     Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
@@ -109,21 +122,47 @@ void lcd_plot_grid(tContext * sContext) {
     // Iteration index
     int i = 0;
 
-    // Drawing the grids in dark blue
-    GrContextForegroundSet(sContext, ClrMidnightBlue);
-    for (i = 0; i < 7; i++) {
-        GrLineDrawH(sContext, 0, 128, PIXELS_PER_DIV * i + 4);
-        GrLineDrawV(sContext, PIXELS_PER_DIV * i + 4, 0, 128);
+    // Access the current display mode to plot accordingly
+    Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
+    uint8_t dispMode = _disp.dispMode;
+    Semaphore_post(sem_accessDisplay);
+
+    // Plot the grids depending on what mode of operation we're at
+    switch(dispMode) {
+        case 0: // spectrum mode
+        
+            // Drawing the grids in dark blue
+            GrContextForegroundSet(sContext, ClrMidnightBlue);
+            for (i = 0; i < 7; i++) {
+                GrLineDrawH(sContext, 0, 128, PIXELS_PER_DIV * i);
+                GrLineDrawV(sContext, PIXELS_PER_DIV * i, 0, 128);
+            }
+
+            // Highlight the center axi in light blue
+            GrContextForegroundSet(sContext, ClrBlue);
+            GrLineDrawH(sContext, 0, 128, 20);
+            break;
+
+        case 1: // normal oscilloscope mode
+        
+            // Drawing the grids in dark blue
+            GrContextForegroundSet(sContext, ClrMidnightBlue);
+            for (i = 0; i < 7; i++) {
+                GrLineDrawH(sContext, 0, 128, PIXELS_PER_DIV * i + 4);
+                GrLineDrawV(sContext, PIXELS_PER_DIV * i + 4, 0, 128);
+            }
+            // Highlight the center axi in light blue
+            GrContextForegroundSet(sContext, ClrBlue);
+            GrLineDrawH(sContext, 0, 128, 64);
+            GrLineDrawV(sContext, 64, 0, 128);
+            break;
+
     }
 
-    // Highlight the center axi
-    GrContextForegroundSet(sContext, ClrBlue);
-    GrLineDrawH(sContext, 0, 128, 64);
-    GrLineDrawV(sContext, 64, 0, 128);
 }
 
 // Drawing text out on the LCD screen
-void lcd_draw_text(tContext * sContext, uint16_t time_scale, uint8_t voltsPerDivPointer, float cpu_load, uint8_t trigger) {
+void lcd_draw_text(tContext * sContext) {
 
     // String buffer to write text to
     char str[32];
@@ -131,35 +170,63 @@ void lcd_draw_text(tContext * sContext, uint16_t time_scale, uint8_t voltsPerDiv
     // White text
     GrContextForegroundSet(sContext, ClrWhite);
 
-    // Print out the time scale
-    snprintf(str, sizeof(str), "%u us", time_scale);
-    GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 5, /*y*/ 0, /*opaque*/ false);
+    // Acess some display params
+    Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
+    uint16_t time_scale = _disp.time_scale;
+    uint8_t voltsPerDivPointer = _disp.voltsPerDivPointer;
+//    float cpu_load = _disp.cpu_load;
+    uint8_t trigger = _disp.rising;
+    uint8_t dispMode = _disp.dispMode;
+    Semaphore_post(sem_accessDisplay);
 
-    // Print out the voltage scale
-    snprintf(str, sizeof(str), "%s", gVoltageScaleStr[voltsPerDivPointer]);
-    GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 50, /*y*/ 0, /*opaque*/ false);
+    // Print out text to the screen depending on what mode of operation we're doing
+    switch(dispMode) {
+        case 0: // spectrum mode
 
-    // Print out the trigger slope
-    switch(trigger) {
-    case 1: // rising edge trigger
-        GrLineDrawH(sContext, 114, 121, 0);
-        GrLineDrawV(sContext, 114, 0, 7);
-        GrLineDrawH(sContext, 107, 114, 7);
-        GrLineDraw(sContext, 114, 2, 111, 5);
-        GrLineDraw(sContext, 114, 2, 117, 5);
-        break;
-    case 0: // falling edge trigger
-        GrLineDrawH(sContext, 107, 114, 0);
-        GrLineDrawV(sContext, 114, 0, 7);
-        GrLineDrawH(sContext, 114, 121, 7);
-        GrLineDraw(sContext, 114, 5, 111, 2);
-        GrLineDraw(sContext, 114, 5, 117, 2);
-        break;
+            // Print out the frequency scale
+            snprintf(str, sizeof(str), "20 kHz");
+            GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 5, /*y*/ 0, /*opaque*/ false);
+
+            // Print out the dB scale
+            snprintf(str, sizeof(str), "20 dB");
+            GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 50, /*y*/ 0, /*opaque*/ false);
+
+            break;
+
+        case 1: // default oscilloscope mode of operation
+
+            // Print out the time scale
+            snprintf(str, sizeof(str), "%u us", time_scale);
+            GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 5, /*y*/ 0, /*opaque*/ false);
+
+            // Print out the voltage scale
+            snprintf(str, sizeof(str), "%s", gVoltageScaleStr[voltsPerDivPointer]);
+            GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 50, /*y*/ 0, /*opaque*/ false);
+
+            // Print out the trigger slope
+            switch(trigger) {
+            case 1: // rising edge trigger
+                GrLineDrawH(sContext, 114, 121, 0);
+                GrLineDrawV(sContext, 114, 0, 7);
+                GrLineDrawH(sContext, 107, 114, 7);
+                GrLineDraw(sContext, 114, 2, 111, 5);
+                GrLineDraw(sContext, 114, 2, 117, 5);
+                break;
+            case 0: // falling edge trigger
+                GrLineDrawH(sContext, 107, 114, 0);
+                GrLineDrawV(sContext, 114, 0, 7);
+                GrLineDrawH(sContext, 114, 121, 7);
+                GrLineDraw(sContext, 114, 5, 111, 2);
+                GrLineDraw(sContext, 114, 5, 117, 2);
+                break;
+            }
+
+            // Print out the CPU load
+            // snprintf(str, sizeof(str), "CPU load: %.1f%%", cpu_load);
+            // GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 120, /*opaque*/ false);
+            
+            break;
     }
-
-    // Print out the CPU load
-    snprintf(str, sizeof(str), "CPU load: %.1f%%", cpu_load);
-    GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 120, /*opaque*/ false);
 }
 
 // Display task
@@ -170,40 +237,5 @@ void lcd_display_task(void) {
 
         // We're clear, proceed to display
         lcd_show_screen();
-    }
-}
-
-// Processing task for normal mode and spectrum mode
-void lcd_process_task(void) {
-    while(1) {
-        // Pend on a semaphore until unblocked
-        Semaphore_pend(sem_processingSignal, BIOS_WAIT_FOREVER);
-
-        // Pend on semaphore before accessing the global variable
-        Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
-
-        // Clear now, start the computational process
-        uint8_t dispMode = _disp.dispMode;
-        uint16_t i = 0;
-        switch(dispMode) { // calculations based on mode of operation
-            case 0: // spectrum mode
-                /* CODE TO BE INSERTED SOON tm */
-                break;
-
-            case 1: // normal mode
-                for (i = 0; i < FULL_SCREEN_SIZE; i++) {
-                    _disp.scaledScreenBuffer[i] = adc_y_scaling(gVoltageScale[_disp.voltsPerDivPointer], _disp.rawScreenBuffer[i]);
-                }
-                break;
-        }
-
-        // Done with the calculations, post to semaphore again
-        Semaphore_post(sem_accessDisplay);
-
-        // Done computation, signal the display task to display
-        Semaphore_post(sem_dispUpdate);
-
-        // Then signal the ADC to capture some more buffer
-        Semaphore_post(sem_waveformSignal);
     }
 }
