@@ -31,8 +31,8 @@ struct Display {
     uint16_t time_scale; // Time scale per grid
     float cpu_load; // CPU load average over 10ms time interval
     uint8_t dispMode; // Display mode, 1 for normal oscilloscope, 0 for spectrum mode
-    uint16_t rawScreenBuffer[SPECTRUM_SCREEN_SIZE]; // raw copy of the screen buffer
-    uint16_t scaledScreenBuffer[FULL_SCREEN_SIZE]; // output of the screen buffer after processed
+    int16_t rawScreenBuffer[SPECTRUM_SCREEN_SIZE]; // raw copy of the screen buffer
+    int16_t scaledScreenBuffer[FULL_SCREEN_SIZE]; // output of the screen buffer after processed
 
 };
 extern struct Display _disp;

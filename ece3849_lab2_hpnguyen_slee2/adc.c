@@ -26,10 +26,12 @@
 #include "sysctl_pll.h"
 
 // Libraries from project
-#include "RTOS_helper.h"
 #include "adc.h"
 #include "buttons.h"
+#include "kiss_fft.h"
+#include "_kiss_fft_guts.h"
 #include "lcd_display.h"
+#include "RTOS_helper.h"
 
 // Initialize struct space for global variable
 struct ADC _adc = {
@@ -160,11 +162,6 @@ uint16_t adc_y_scaling(float fVoltsPerDiv, uint16_t sample) {
     return LCD_VERTICAL_MAX/2 - (int)roundf(fScale * ((int)sample - ADC_OFFSET));
 }
 
-// Kiss FFT package handler here
-void adc_kiss_fft(void) {
-    
-}
-
 // Waveform task to search for the trigger position
 void adc_waveform_task(void) {
     while(1) {
@@ -182,6 +179,15 @@ void adc_waveform_task(void) {
 
 // Processing task for normal mode and spectrum mode
 void adc_process_task(void) {
+
+    // Allocating variables for FFT calculation
+    static char kiss_fft_cfg_buffer[KISS_FFT_CFG_SIZE]; // Kiss FFT config memory
+    size_t buffer_size = KISS_FFT_CFG_SIZE;
+    kiss_fft_cfg cfg; // Kiss FFT config
+    static kiss_fft_cpx in[NFFT], out[NFFT]; // complex waveform and spectrum buffers
+    cfg = kiss_fft_alloc(NFFT, 0, kiss_fft_cfg_buffer, &buffer_size); // init Kiss FFT
+
+    // Start the process task infinite loop here
     while(1) {
         // Pend on a semaphore until unblocked
         Semaphore_pend(sem_processingSignal, BIOS_WAIT_FOREVER);
@@ -195,8 +201,18 @@ void adc_process_task(void) {
         float fVoltageScale = gVoltageScale[_disp.voltsPerDivPointer];
         switch(dispMode) { // calculations based on mode of operation
             case 0: // spectrum mode
-                /* CODE TO BE INSERTED SOON tm */
-                adc_kiss_fft();
+            
+                // Computing FFT and output to out array    
+                for (i = 0; i < NFFT; i++) { // generate an input waveform
+                     in[i].r = _disp.rawScreenBuffer[i]; // real part of waveform
+                     in[i].i = 0; // imaginary part of waveform
+                }
+                kiss_fft(cfg, in, out); // compute FFT
+
+                // Copying to screen buffer
+                for (i = 0; i < FULL_SCREEN_SIZE; i++) {
+                    _disp.scaledScreenBuffer[i] = ((int)roundf((log10f(out[i].r)*20.0f)) + 20) & 127;
+                }
                 break;
 
             case 1: // normal mode

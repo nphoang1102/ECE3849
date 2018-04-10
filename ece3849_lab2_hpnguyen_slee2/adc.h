@@ -32,10 +32,15 @@
 #define VIN_RANGE 3.3f
 #define ADC_BITS 12
 
+// KISS FFT definition
+#define PI 3.14159265358979f
+#define NFFT 1024 // FFT length
+#define KISS_FFT_CFG_SIZE (sizeof(struct kiss_fft_state)+sizeof(kiss_fft_cpx)*(NFFT-1))
+
 // Struct for global variable storage
 struct ADC {
     int32_t gADCBufferIndex;
-    uint16_t gADCBuffer[ADC_BUFFER_SIZE];
+    int16_t gADCBuffer[ADC_BUFFER_SIZE];
     uint32_t gADCErrors;
 };
 extern struct ADC _adc;
