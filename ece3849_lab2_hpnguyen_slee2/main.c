@@ -34,15 +34,6 @@ int main(void)
     IntMasterDisable();
 
     /* Hardware initialization goes here */
-
-    // Enable the Floating Point Unit, and permit ISRs to use it
-    FPUEnable();
-    FPULazyStackingEnable();
-
-    // Initialize the system clock to 120 MHz
-    gSystemClock = SysCtlClockFreqSet(SYSCTL_XTAL_25MHZ | SYSCTL_OSC_MAIN | SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480, 120000000);
-
-    // Initialization here
     lcd_init();
     ButtonInit(); // setup the ISR for our counter, will not need under RTOS anymore
     ADCinit();

@@ -106,7 +106,7 @@ void ButtonDebounce(uint32_t buttons)
 	for (i = 0; i < BUTTON_COUNT; i++) { 
 		mask = 1 << i;
 
-        // Handling button release here
+        // Handling button pressed here
 		if (buttons & mask) { 
 			state[i] += BUTTON_STATE_INCREMENT;
 			if (state[i] >= BUTTON_PRESSED_STATE) {
@@ -115,7 +115,7 @@ void ButtonDebounce(uint32_t buttons)
 			}
 		}
 
-        // Handling button pressed here
+        // Handling button released here
 		else { 
 			state[i] -= BUTTON_STATE_DECREMENT;
 			if (state[i] <= 0) {
