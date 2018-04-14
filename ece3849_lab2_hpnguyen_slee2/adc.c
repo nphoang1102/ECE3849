@@ -204,14 +204,14 @@ void adc_process_task(void) {
             
                 // Computing FFT and output to out array    
                 for (i = 0; i < NFFT; i++) { // generate an input waveform
-                     in[i].r = _disp.rawScreenBuffer[i]-ADC_OFFSET; // real part of waveform
+                     in[i].r = _disp.rawScreenBuffer[i] - ADC_OFFSET; // real part of waveform
                      in[i].i = 0; // imaginary part of waveform
                 }
                 kiss_fft(cfg, in, out); // compute FFT
 
                 // Copying to screen buffer
                 for (i = 0; i < FULL_SCREEN_SIZE; i++) {
-                    _disp.scaledScreenBuffer[i] = 120 - roundf(10*log10f((out[i].i*out[i].i) + (out[i].r*out[i].r)));
+                    _disp.scaledScreenBuffer[i] = 128 - roundf(10*log10f((out[i].i*out[i].i) + (out[i].r*out[i].r)));
                 }
                 break;
 
