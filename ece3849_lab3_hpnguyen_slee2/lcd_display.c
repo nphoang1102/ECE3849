@@ -141,6 +141,7 @@ void lcd_plot_grid(tContext * sContext) {
             // Highlight the center axi in light blue
             GrContextForegroundSet(sContext, ClrBlue);
             GrLineDrawH(sContext, 0, 128, 20);
+            GrLineDrawV(sContext, 0, 0, 128);
             break;
 
         case 1: // normal oscilloscope mode

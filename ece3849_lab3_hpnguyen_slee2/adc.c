@@ -34,13 +34,13 @@
 #include "lcd_display.h"
 #include "RTOS_helper.h"
 
-// Pragma and global variable stuffs for DMA
+// Pragma to allocate DMA control table in RAM and global variable stuffs for DMA
 #pragma DATA_ALIGN(gDMAControlTable, 1024) // address alignment required
 tDMAControlTable gDMAControlTable[64]; // uDMA control table (global)
+volatile bool gDMAPrimary = true; // is DMA occurring in the primary channel?
 
 // Initialize struct space for global variable
 struct ADC _adc = {
-    (ADC_BUFFER_SIZE - 1), // latest sample index
     {0}, // ring buffer
     0, // number of missed ADC deadlines
 };
@@ -70,15 +70,18 @@ void ADCinit(void) {
     ADCSequenceStepConfigure(ADC1_BASE, 0, 0, ADC_CTL_CH3 | ADC_CTL_IE | ADC_CTL_END);// in the 0th step, sample channel 3 (AIN3)
      // enable interrupt, and make it the end of sequence
     
-    // Fire the interrupt and sequence now
+    // Fire the interrupt for DMA and sequence now
     ADCSequenceEnable(ADC1_BASE, 0); // enable the sequence. it is now sampling
     ADCIntEnable(ADC1_BASE, 0); // enable sequence 0 interrupt in the ADC1 peripheral
+    ADCSequenceDMAEnable(ADC1_BASE, 0); // enable DMA for ADC1 sequence 0
+    ADCIntEnableEx(ADC1_BASE, ADC_INT_DMA_SS0); // enable ADC1 sequence 0 DMA interrupt
 //    IntPrioritySet(INT_ADC1SS0, ADC_INT_PRIORITY); // set ADC1 sequence 0 interrupt priority
 //    IntEnable(INT_ADC1SS0); // enable ADC1 sequence 0 interrupt in int. controller
 }
 
 // Initialize DMA mode for ADC1
 void ADCinit_DMA(void) {
+
     // Enable DMA
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
     uDMAEnable();
@@ -91,41 +94,83 @@ void ADCinit_DMA(void) {
                          UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_4);
     uDMAChannelTransferSet(UDMA_SEC_CHANNEL_ADC10 | UDMA_PRI_SELECT,
                          UDMA_MODE_PINGPONG, (void*)&ADC1_SSFIFO0_R,
-    (void*)&_adc.gADCBuffer[0], ADC_BUFFER_SIZE>>1);
+                        (void*)&_adc.gADCBuffer[0], ADC_BUFFER_SIZE>>1);
 
     // alternate DMA channel = second half of the ADC buffer
     uDMAChannelControlSet(UDMA_SEC_CHANNEL_ADC10 | UDMA_ALT_SELECT,
-     UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_4);
+                         UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_4);
     uDMAChannelTransferSet(UDMA_SEC_CHANNEL_ADC10 | UDMA_ALT_SELECT,
-     UDMA_MODE_PINGPONG, (void*)&ADC1_SSFIFO0_R,
-     (void*)&_adc.gADCBuffer[ADC_BUFFER_SIZE/2], ADC_BUFFER_SIZE>>1);
+                         UDMA_MODE_PINGPONG, (void*)&ADC1_SSFIFO0_R,
+                         (void*)&_adc.gADCBuffer[ADC_BUFFER_SIZE>>1], ADC_BUFFER_SIZE>>1);
 
     // Done initialize, enable now
     uDMAChannelEnable(UDMA_SEC_CHANNEL_ADC10);
 }
 
 
-// ISR for ADC1 (gonna use only direct register access for faster processing time)
+// ISR for DMA
 void ADC_ISR(void) {
-    // First thing first, clear the interrupt flag so we can exit
-    ADC1_ISC_R = ADC_ISC_IN0;
+    ADCIntClearEx(ADC1_BASE, ADC_INT_DMA_SS0); // clear the ADC1 sequence 0 DMA interrupt flag
+     
+    // Check the primary DMA channel for end of transfer, and restart if needed.
+    if (uDMAChannelModeGet(UDMA_SEC_CHANNEL_ADC10 | UDMA_PRI_SELECT) == UDMA_MODE_STOP) {
+        
+        // restart the primary channel (same as setup)
+        uDMAChannelTransferSet(UDMA_SEC_CHANNEL_ADC10 | UDMA_ALT_SELECT,
+                                UDMA_MODE_PINGPONG, (void*)&ADC1_SSFIFO0_R,
+                                (void*)&_adc.gADCBuffer[ADC_BUFFER_SIZE>>1], ADC_BUFFER_SIZE>>1);
+        gDMAPrimary = false; // DMA is currently occurring in the alternate buffer
+    }
 
-    // Process the data coming in
-    if (ADC1_OSTAT_R & ADC_OSTAT_OV0) { // check for ADC FIFO overflow
-         _adc.gADCErrors++; // count errors
-         ADC1_OSTAT_R = ADC_OSTAT_OV0; // clear overflow condition
-     }
-     _adc.gADCBuffer[
-         _adc.gADCBufferIndex = ADC_BUFFER_WRAP(_adc.gADCBufferIndex + 1)
-     ] = ADC1_SSFIFO0_R; // read sample from the ADC1 sequence 0 FIFO
+   // Check the alternate DMA channel for end of transfer, and restart if needed.
+    if (uDMAChannelModeGet(UDMA_SEC_CHANNEL_ADC10 | UDMA_ALT_SELECT) == UDMA_MODE_STOP) {
+        
+        // restart the alternate channel (same as setup)
+        uDMAChannelTransferSet(UDMA_SEC_CHANNEL_ADC10 | UDMA_PRI_SELECT,
+                                UDMA_MODE_PINGPONG, (void*)&ADC1_SSFIFO0_R,
+                                (void*)&_adc.gADCBuffer[0], ADC_BUFFER_SIZE>>1);
+        gDMAPrimary = true; // DMA is currently occurring in the primary buffer
+    }
+    
+    // The DMA channel may be disabled if the CPU is paused by the debugger.
+    if (!uDMAChannelIsEnabled(UDMA_SEC_CHANNEL_ADC10)) {
+        uDMAChannelEnable(UDMA_SEC_CHANNEL_ADC10); // re-enable the DMA channel
+    }
+}
 
+// Helper function to get the current ADC buffer index with DMA
+uint32_t adc_get_buffer_index(void) {
+
+    // Setup some variables for return and entering gate
+    int32_t index;
+    IArg key;
+
+    // Entering critical section here, let's enter the gate and retrieve the key to leave
+    key = GateTask_enter(gateTask0);
+
+    // Getting the index for DMA is currently in the primary channel case
+    if (gDMAPrimary) { 
+        index = ADC_BUFFER_SIZE/2 - 1 -
+                uDMAChannelSizeGet(UDMA_SEC_CHANNEL_ADC10 | UDMA_PRI_SELECT);
+    }
+
+    // Getting the index for DMA is currently in the alternate channel case
+    else {
+        index = ADC_BUFFER_SIZE - 1 -
+                uDMAChannelSizeGet(UDMA_SEC_CHANNEL_ADC10 | UDMA_ALT_SELECT);
+    }
+
+    // Done with the critical section, leave the gate with the key then return the index
+    GateTask_leave(gateTask0, key);
+    return index;
 }
 
 // Searching for the trigger, rising = 1 for rising edge, rising = 0 for falling edge
 uint32_t adc_trigger_search(uint16_t pTrigger, uint8_t rising) {
 
     // Choose a starting point for our buffer search
-    int32_t start_index = ADC_BUFFER_WRAP(_adc.gADCBufferIndex - HALF_SCREEN_SIZE);
+    uint32_t ADCBufferIndex = adc_get_buffer_index();
+    int32_t start_index = ADC_BUFFER_WRAP(ADCBufferIndex - HALF_SCREEN_SIZE);
     int32_t search_index = start_index;
 
     // Start looking for the trigger value
@@ -152,6 +197,9 @@ uint32_t adc_trigger_search(uint16_t pTrigger, uint8_t rising) {
 // Copy samples half a screen behind and half a screen ahead of the trigger point
 void adc_copy_buffer_samples(void) {
 
+    // Get the current buffer index
+    uint32_t ADCBufferIndex = adc_get_buffer_index();
+
     // Accessing the screen global variables from display, wrapping around semaphore pend and post
     Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
     uint16_t pTrigger = _disp.pTrigger;
@@ -166,7 +214,7 @@ void adc_copy_buffer_samples(void) {
     switch(dispMode) {
         case 0:
             iteration = SPECTRUM_SCREEN_SIZE; // 1024 samples
-            start_pos = ADC_BUFFER_WRAP(_adc.gADCBufferIndex - SPECTRUM_SCREEN_SIZE); // 1024 sapmles behind the latest sample
+            start_pos = ADC_BUFFER_WRAP(ADCBufferIndex - SPECTRUM_SCREEN_SIZE); // 1024 sapmles behind the latest sample
             break;
         case 1:
             iteration = FULL_SCREEN_SIZE; // full screen 128 samples

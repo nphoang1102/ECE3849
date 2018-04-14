@@ -37,6 +37,7 @@ int main(void)
     lcd_init();
     ButtonInit(); // setup the ISR for our counter, will not need under RTOS anymore
     ADCinit();
+    ADCinit_DMA();
 
     /* Start BIOS */
     BIOS_start();
