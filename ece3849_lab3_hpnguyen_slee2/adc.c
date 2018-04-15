@@ -72,7 +72,7 @@ void ADCinit(void) {
     
     // Fire the interrupt for DMA and sequence now
     ADCSequenceEnable(ADC1_BASE, 0); // enable the sequence. it is now sampling
-    ADCIntEnable(ADC1_BASE, 0); // enable sequence 0 interrupt in the ADC1 peripheral
+//    ADCIntEnable(ADC1_BASE, 0); // enable sequence 0 interrupt in the ADC1 peripheral
     ADCSequenceDMAEnable(ADC1_BASE, 0); // enable DMA for ADC1 sequence 0
     ADCIntEnableEx(ADC1_BASE, ADC_INT_DMA_SS0); // enable ADC1 sequence 0 DMA interrupt
 //    IntPrioritySet(INT_ADC1SS0, ADC_INT_PRIORITY); // set ADC1 sequence 0 interrupt priority
@@ -111,7 +111,7 @@ void ADCinit_DMA(void) {
 // ISR for DMA
 void ADC_ISR(void) {
     ADCIntClearEx(ADC1_BASE, ADC_INT_DMA_SS0); // clear the ADC1 sequence 0 DMA interrupt flag
-     
+
     // Check the primary DMA channel for end of transfer, and restart if needed.
     if (uDMAChannelModeGet(UDMA_SEC_CHANNEL_ADC10 | UDMA_PRI_SELECT) == UDMA_MODE_STOP) {
         
@@ -124,7 +124,7 @@ void ADC_ISR(void) {
 
    // Check the alternate DMA channel for end of transfer, and restart if needed.
     if (uDMAChannelModeGet(UDMA_SEC_CHANNEL_ADC10 | UDMA_ALT_SELECT) == UDMA_MODE_STOP) {
-        
+
         // restart the alternate channel (same as setup)
         uDMAChannelTransferSet(UDMA_SEC_CHANNEL_ADC10 | UDMA_ALT_SELECT,
                          UDMA_MODE_PINGPONG, (void*)&ADC1_SSFIFO0_R,

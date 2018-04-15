@@ -47,6 +47,7 @@ extern struct ADC _adc;
 /* Function prototypes */
 void ADCinit(void); // initialize ADC1 for data sampling
 void ADCinit_DMA(void); // initialize DMA for data transfer
+uint32_t adc_get_buffer_index(void); // helper to get the current buffer index now that we're using DMA
 uint32_t adc_trigger_search(uint16_t pTrigger, uint8_t rising); // searching for the trigger index position
 void adc_copy_buffer_samples(void); // copy a screen worth of samples to a buffer
 uint16_t adc_y_scaling(float fVoltsPerDiv, uint16_t sample); // scaling the ADC sample in the vertical direction
