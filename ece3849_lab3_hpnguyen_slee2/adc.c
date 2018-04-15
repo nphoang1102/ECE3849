@@ -94,7 +94,7 @@ void ADCinit_DMA(void) {
                          UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 | UDMA_ARB_4);
     uDMAChannelTransferSet(UDMA_SEC_CHANNEL_ADC10 | UDMA_PRI_SELECT,
                          UDMA_MODE_PINGPONG, (void*)&ADC1_SSFIFO0_R,
-                        (void*)&_adc.gADCBuffer[0], ADC_BUFFER_SIZE>>1);
+                         (void*)&_adc.gADCBuffer[0], ADC_BUFFER_SIZE>>1);
 
     // alternate DMA channel = second half of the ADC buffer
     uDMAChannelControlSet(UDMA_SEC_CHANNEL_ADC10 | UDMA_ALT_SELECT,
@@ -116,9 +116,9 @@ void ADC_ISR(void) {
     if (uDMAChannelModeGet(UDMA_SEC_CHANNEL_ADC10 | UDMA_PRI_SELECT) == UDMA_MODE_STOP) {
         
         // restart the primary channel (same as setup)
-        uDMAChannelTransferSet(UDMA_SEC_CHANNEL_ADC10 | UDMA_ALT_SELECT,
-                                UDMA_MODE_PINGPONG, (void*)&ADC1_SSFIFO0_R,
-                                (void*)&_adc.gADCBuffer[ADC_BUFFER_SIZE>>1], ADC_BUFFER_SIZE>>1);
+        uDMAChannelTransferSet(UDMA_SEC_CHANNEL_ADC10 | UDMA_PRI_SELECT,
+                         UDMA_MODE_PINGPONG, (void*)&ADC1_SSFIFO0_R,
+                         (void*)&_adc.gADCBuffer[0], ADC_BUFFER_SIZE>>1);
         gDMAPrimary = false; // DMA is currently occurring in the alternate buffer
     }
 
@@ -126,9 +126,9 @@ void ADC_ISR(void) {
     if (uDMAChannelModeGet(UDMA_SEC_CHANNEL_ADC10 | UDMA_ALT_SELECT) == UDMA_MODE_STOP) {
         
         // restart the alternate channel (same as setup)
-        uDMAChannelTransferSet(UDMA_SEC_CHANNEL_ADC10 | UDMA_PRI_SELECT,
-                                UDMA_MODE_PINGPONG, (void*)&ADC1_SSFIFO0_R,
-                                (void*)&_adc.gADCBuffer[0], ADC_BUFFER_SIZE>>1);
+        uDMAChannelTransferSet(UDMA_SEC_CHANNEL_ADC10 | UDMA_ALT_SELECT,
+                         UDMA_MODE_PINGPONG, (void*)&ADC1_SSFIFO0_R,
+                         (void*)&_adc.gADCBuffer[ADC_BUFFER_SIZE>>1], ADC_BUFFER_SIZE>>1);
         gDMAPrimary = true; // DMA is currently occurring in the primary buffer
     }
     
