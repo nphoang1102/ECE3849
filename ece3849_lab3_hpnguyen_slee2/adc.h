@@ -17,7 +17,7 @@
 /* Macro definition */
 
 // ADC declaration
-#define ADC_SAMPLING_RATE 1000000   // [samples/sec] desired ADC sampling rate +// Timer interrupt macro
+#define ADC_SAMPLING_RATE 2000000   // [samples/sec] desired ADC sampling rate +// Timer interrupt macro
 #define CRYSTAL_FREQUENCY 25000000
 
 // Definition for interrupt setup

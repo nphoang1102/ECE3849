@@ -36,6 +36,7 @@ int main(void)
     /* Hardware initialization goes here */
     lcd_init();
     ButtonInit(); // setup the ISR for our counter, will not need under RTOS anymore
+    timer_capture_init();
     ADCinit();
     ADCinit_DMA();
 

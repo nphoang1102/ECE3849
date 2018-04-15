@@ -18,6 +18,7 @@
 #include "lcd_display.h"
 #include "adc.h"
 #include "RTOS_helper.h"
+#include "timer.h"
 
 // Declaring global variables
 const float gVoltageScale[] = {0.1, 0.2, 0.5, 1.0}; // float value of the voltage scale
@@ -175,7 +176,7 @@ void lcd_draw_text(tContext * sContext) {
     Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
     uint16_t time_scale = _disp.time_scale;
     uint8_t voltsPerDivPointer = _disp.voltsPerDivPointer;
-//    float cpu_load = _disp.cpu_load;
+    // float cpu_load = _disp.cpu_load;
     uint8_t trigger = _disp.rising;
     uint8_t dispMode = _disp.dispMode;
     Semaphore_post(sem_accessDisplay);
@@ -220,14 +221,13 @@ void lcd_draw_text(tContext * sContext) {
                 GrLineDraw(sContext, 114, 5, 111, 2);
                 GrLineDraw(sContext, 114, 5, 117, 2);
                 break;
-            }
+            }            
+            break;
+    }
 
             // Print out the CPU load
             // snprintf(str, sizeof(str), "CPU load: %.1f%%", cpu_load);
             // GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 120, /*opaque*/ false);
-            
-            break;
-    }
 }
 
 // Display task
