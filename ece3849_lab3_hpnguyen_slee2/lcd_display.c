@@ -176,7 +176,7 @@ void lcd_draw_text(tContext * sContext) {
     Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
     uint16_t time_scale = _disp.time_scale;
     uint8_t voltsPerDivPointer = _disp.voltsPerDivPointer;
-    // float cpu_load = _disp.cpu_load;
+    float cpu_load = _disp.cpu_load;
     uint8_t trigger = _disp.rising;
     uint8_t dispMode = _disp.dispMode;
     Semaphore_post(sem_accessDisplay);
@@ -226,17 +226,26 @@ void lcd_draw_text(tContext * sContext) {
     }
 
             // Print out the CPU load
-            // snprintf(str, sizeof(str), "CPU load: %.1f%%", cpu_load);
-            // GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 120, /*opaque*/ false);
+            snprintf(str, sizeof(str), "CPU load: %.1f%%", cpu_load);
+            GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 120, /*opaque*/ false);
 }
 
 // Display task
 void lcd_display_task(void) {
+
+    // Initialize storage space for the one-shot timer
+    uint32_t count_unloaded = timer_load_count();
+    uint32_t count_loaded = 0;
+
     while(1) {
         // Pend on a semaphore until unblocked
         Semaphore_pend(sem_dispUpdate, BIOS_WAIT_FOREVER);
 
         // We're clear, proceed to display
         lcd_show_screen();
+
+        // Compute and display the current CPU load?
+        count_loaded = timer_load_count();
+        _disp.cpu_load = (1.0f - (float)count_loaded/count_unloaded) * 100.0f;
     }
 }

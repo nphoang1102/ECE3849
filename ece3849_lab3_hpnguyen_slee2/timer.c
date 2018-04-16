@@ -22,7 +22,16 @@
 #include "sysctl_pll.h"
 
 // Libraries from project
+#include "RTOS_helper.h"
 #include "timer.h"
+
+// Initialize struct space for global variable storage
+struct TIMER _timr = {
+    0,
+    {0},
+    0,
+    0
+}; // basically nothing on startup
 
 // Importing global variable
 extern uint32_t gSystemClock;
@@ -70,13 +79,25 @@ void timer_capture_init(void) {
     
     /* Need to verify this actually */
     TimerIntEnable(TIMER0_BASE, TIMER_CAPA_EVENT);
-    
     TimerEnable(TIMER0_BASE, TIMER_A);
 }
 
 // Timer capture mode ISR
 void timer_capture_ISR(void) {
-    // Code to be implemented later
+
+    // Clear the capture interrupt flag first
+    TimerIntClear(TIMER0_BASE, TIMER_CAPA_EVENT);
+
+    // Read in current timer count
+    uint32_t current_cnt = TimerValueGet(TIMER0_BASE, TIMER_A);
+
+    // Calculate the period, wrap and store
+    _timr.period[_timr.ptr] = (current_cnt - _timr.cnt_last) & 0xffffff;
+    _timr.ptr++; // no wrapping required here as a char will ovf back to 0 once it has gone passed 255
+
+    // Update the last timer count and increment the period accumulated value
+    _timr.cnt_last = current_cnt;
+    _timr.period_accum++;
 }
 
 // Count up for 10ms time period and return counted value
@@ -87,4 +108,38 @@ uint32_t timer_load_count(void) {
     while (!(TimerIntStatus(TIMER3_BASE, false) & TIMER_TIMA_TIMEOUT))
         i++;
     return i;
+}
+
+// Unblock the frequency task, signalled by clock 1
+void timer_frequency_signal(void) {
+    Semaphore_post(sem_FrequencyTask);
+}
+
+// Frequency task, signaled by timer_frequency_signal
+void timer_frequency_task(void) {
+    
+    // Some local variables for this task to run
+    IArg key;
+    int i = 0;
+    uint32_t accum_interval;
+
+    while(1) {
+        // Wating to be unblocked by clock
+        Semaphore_pend(sem_FrequencyTask, BIOS_WAIT_FOREVER);
+
+        // Accessing the critical section now
+        key = GateTask_enter(gateTask1);
+
+        // Start iterating through the accumulated periods and calculate the average frequency
+        for (i = _timr.ptr - _timr.period_accum; i <= _timr.ptr; i++) {
+            accum_interval += _timr.period[i];
+        }
+        _timr.frequency = _timr.period_accum/accum_interval;
+
+        // Reset the accumulated period value
+        _timr.period_accum = 0;
+
+        // Exit the critical section
+        GateTask_leave(gateTask1, key);
+    }
 }
