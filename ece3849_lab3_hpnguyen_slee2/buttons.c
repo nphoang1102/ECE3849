@@ -26,6 +26,7 @@
 #include "buttons.h"
 #include "adc.h"
 #include "RTOS_helper.h"
+#include "timer.h"
 
 // Initialize global space for variable storage
 struct Button _butt = {
@@ -226,9 +227,19 @@ void ButtonClockSignal(void) {
 
  // Mailbox where the Button Task posts button IDs
 void ButtonMailboxTask(void){
+
+    // Enable global interrupt for Hwi and Swi to fire
     IntMasterEnable();
+
+    // Local variable for data storage
     uint16_t button_pressed;
     uint16_t last_pressed = 0;
+    uint32_t count_loaded = 0;
+    uint32_t count_unloaded = _timr.count_unloaded;
+
+    // Key to leave gate
+    IArg key;
+
     while(1) {
         // Pending for semaphore, post in Clock signal
         Semaphore_pend(sem_ButtonTask, BIOS_WAIT_FOREVER);
@@ -238,5 +249,14 @@ void ButtonMailboxTask(void){
         if (button_pressed != last_pressed)
             Mailbox_post(Mailbox_Button, &button_pressed, BIOS_WAIT_FOREVER);
         last_pressed = button_pressed;
+
+        // Update the current CPU load under this task as it has the highest priority
+        count_loaded = timer_load_count();
+        float cpu_load = (1.0f - (float)count_loaded/count_unloaded) * 100.0f;
+
+        // Entering critical section
+        key = GateTask_enter(gateTask2);
+        _disp.cpu_load = cpu_load;
+        GateTask_leave(gateTask2, key);
     }
 }

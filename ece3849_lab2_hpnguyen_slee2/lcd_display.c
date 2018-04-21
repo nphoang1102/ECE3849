@@ -174,7 +174,7 @@ void lcd_draw_text(tContext * sContext) {
     Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
     uint16_t time_scale = _disp.time_scale;
     uint8_t voltsPerDivPointer = _disp.voltsPerDivPointer;
-//    float cpu_load = _disp.cpu_load;
+    float cpu_load = _disp.cpu_load;
     uint8_t trigger = _disp.rising;
     uint8_t dispMode = _disp.dispMode;
     Semaphore_post(sem_accessDisplay);
@@ -222,8 +222,8 @@ void lcd_draw_text(tContext * sContext) {
             }
 
             // Print out the CPU load
-            // snprintf(str, sizeof(str), "CPU load: %.1f%%", cpu_load);
-            // GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 120, /*opaque*/ false);
+            snprintf(str, sizeof(str), "CPU load: %.1f%%", cpu_load);
+            GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 120, /*opaque*/ false);
             
             break;
     }

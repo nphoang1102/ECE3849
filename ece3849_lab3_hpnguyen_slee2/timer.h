@@ -26,6 +26,7 @@ struct TIMER {
     uint8_t ptr;
     uint16_t period_accum;
     float frequency;
+    uint32_t count_unloaded;
 };
 extern struct TIMER _timr;
 

@@ -41,6 +41,9 @@ int main(void)
     ADCinit();
     ADCinit_DMA();
 
+    /* Get the initial unloaded timer tick counts */
+    _timr.count_unloaded = timer_load_count();
+
     /* Start BIOS */
     BIOS_start();
 

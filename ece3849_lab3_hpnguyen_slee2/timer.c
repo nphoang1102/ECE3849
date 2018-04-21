@@ -30,6 +30,7 @@ struct TIMER _timr = {
     0,
     {0},
     0,
+    0,
     0
 }; // basically nothing on startup
 

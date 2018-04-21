@@ -37,6 +37,10 @@ int main(void)
     lcd_init();
     ButtonInit(); // setup the ISR for our counter, will not need under RTOS anymore
     ADCinit();
+    timer_oneshot_init();
+
+    /* Get the initial unloaded timer tick counts */
+    _timr.count_unloaded = timer_load_count();
 
     /* Start BIOS */
     BIOS_start();

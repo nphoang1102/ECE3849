@@ -232,20 +232,11 @@ void lcd_draw_text(tContext * sContext) {
 
 // Display task
 void lcd_display_task(void) {
-
-    // Initialize storage space for the one-shot timer
-    uint32_t count_unloaded = timer_load_count();
-    uint32_t count_loaded = 0;
-
     while(1) {
         // Pend on a semaphore until unblocked
         Semaphore_pend(sem_dispUpdate, BIOS_WAIT_FOREVER);
 
         // We're clear, proceed to display
         lcd_show_screen();
-
-        // Compute and display the current CPU load?
-        count_loaded = timer_load_count();
-        _disp.cpu_load = (1.0f - (float)count_loaded/count_unloaded) * 100.0f;
     }
 }

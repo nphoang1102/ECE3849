@@ -22,6 +22,11 @@
 // Libraries from project
 #include "timer.h"
 
+// Initialize struct space for global variable storage
+struct TIMER _timr = {
+    0
+}; // basically nothing on startup
+
 // Importing global variable
 extern uint32_t gSystemClock;
 
