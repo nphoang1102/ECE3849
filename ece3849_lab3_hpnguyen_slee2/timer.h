@@ -17,14 +17,15 @@
 #define TIMER_CPU_LOAD_INT 10000
 
 // Size of the period interval
-#define PERIOD_INTERVAL 256
+#define PERIOD_INTERVAL 1024
+#define PERIOD_BUFFER_WRAP(i) ((i) & (PERIOD_INTERVAL - 1)) // index wrapping
 
 // Struct for global variable storage
 struct TIMER {
-    uint32_t cnt_last;
-    uint32_t period[PERIOD_INTERVAL];
-    uint8_t ptr;
-    uint16_t period_accum;
+    uint16_t cnt_last;
+    uint16_t period;
+    uint32_t period_accum;
+    uint32_t interval_accum;
     float frequency;
     uint32_t count_unloaded;
 };

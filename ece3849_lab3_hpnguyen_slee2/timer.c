@@ -27,11 +27,7 @@
 
 // Initialize struct space for global variable storage
 struct TIMER _timr = {
-    0,
-    {0},
-    0,
-    0,
-    0
+    0, 0, 0, 0, 0.0, 0
 }; // basically nothing on startup
 
 // Importing global variable
@@ -65,7 +61,7 @@ void timer_capture_init(void) {
     GPIOPinConfigure(GPIO_PD1_C1O); // search for PART_TM4C1294NCPDT under driverlib/pin_map.h
 
     // configure GPIO PD0 as timer input T0CCP0 at BoosterPack Connector #1 pin 14
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD); // pin D0
     GPIOPinTypeTimer(GPIO_PORTD_BASE, GPIO_PIN_0);
     GPIOPinConfigure(GPIO_PD0_T0CCP0);
 
@@ -92,13 +88,14 @@ void timer_capture_ISR(void) {
     // Read in current timer count
     uint32_t current_cnt = TimerValueGet(TIMER0_BASE, TIMER_A);
 
-    // Calculate the period, wrap and store
-    _timr.period[_timr.ptr] = (current_cnt - _timr.cnt_last) & 0xffffff;
-    _timr.ptr++; // no wrapping required here as a char will ovf back to 0 once it has gone passed 255
+    // Accumulate the period
+    _timr.period = (current_cnt - _timr.cnt_last) & 0xffffff;
+    _timr.interval_accum += _timr.period;
+    _timr.period_accum++;
 
     // Update the last timer count and increment the period accumulated value
     _timr.cnt_last = current_cnt;
-    _timr.period_accum++;
+
 }
 
 // Count up for 10ms time period and return counted value
@@ -111,7 +108,7 @@ uint32_t timer_load_count(void) {
     return i;
 }
 
-// Unblock the frequency task, signalled by clock 1
+// Unblock the frequency task, signaled by clock 1
 void timer_frequency_signal(void) {
     Semaphore_post(sem_FrequencyTask);
 }
@@ -121,8 +118,6 @@ void timer_frequency_task(void) {
     
     // Some local variables for this task to run
     IArg key;
-    int i = 0;
-    uint32_t accum_interval;
 
     while(1) {
         // Wating to be unblocked by clock
@@ -131,14 +126,12 @@ void timer_frequency_task(void) {
         // Accessing the critical section now
         key = GateTask_enter(gateTask1);
 
-        // Start iterating through the accumulated periods and calculate the average frequency
-        for (i = _timr.ptr - _timr.period_accum; i <= _timr.ptr; i++) {
-            accum_interval += _timr.period[i];
-        }
-        _timr.frequency = _timr.period_accum/accum_interval;
+        // Calculate the frequency of the waveform
+        _timr.frequency = (float)(gSystemClock)/(_timr.interval_accum/_timr.period_accum);
 
         // Reset the accumulated period value
         _timr.period_accum = 0;
+        _timr.interval_accum = 0;
 
         // Exit the critical section
         GateTask_leave(gateTask1, key);

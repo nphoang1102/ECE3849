@@ -172,14 +172,17 @@ void lcd_draw_text(tContext * sContext) {
     // White text
     GrContextForegroundSet(sContext, ClrWhite);
 
+    // Key to access and leave gate instances
+    IArg key;
+
     // Acess some display params
-    Semaphore_pend(sem_accessDisplay, BIOS_WAIT_FOREVER);
+    key = GateTask_enter(gateTask3);
     uint16_t time_scale = _disp.time_scale;
     uint8_t voltsPerDivPointer = _disp.voltsPerDivPointer;
     float cpu_load = _disp.cpu_load;
     uint8_t trigger = _disp.rising;
     uint8_t dispMode = _disp.dispMode;
-    Semaphore_post(sem_accessDisplay);
+    GateTask_leave(gateTask3, key);
 
     // Print out text to the screen depending on what mode of operation we're doing
     switch(dispMode) {
@@ -228,6 +231,10 @@ void lcd_draw_text(tContext * sContext) {
             // Print out the CPU load
             snprintf(str, sizeof(str), "CPU load: %.1f%%", cpu_load);
             GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 120, /*opaque*/ false);
+
+            // Print out the measured frequency
+            snprintf(str, sizeof(str), "Freq.: %.3f Hz", _timr.frequency);
+            GrStringDraw(sContext, str, /*length*/ -1, /*x*/ 0, /*y*/ 108, /*opaque*/ false);
 }
 
 // Display task
