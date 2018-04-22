@@ -19,6 +19,7 @@
 #include "adc.h"
 #include "buttons.h"
 #include "lcd_display.h"
+#include "pwm_gen.h"
 #include "RTOS_helper.h"
 #include "timer.h"
 
@@ -40,6 +41,7 @@ int main(void)
     timer_capture_init();
     ADCinit();
     ADCinit_DMA();
+    pwm_init();
 
     /* Get the initial unloaded timer tick counts */
     _timr.count_unloaded = timer_load_count();
