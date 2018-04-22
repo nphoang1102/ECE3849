@@ -18,9 +18,17 @@
 #include "driverlib/sysctl.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_ints.h"
+#include "inc/tm4c1294ncpdt.h"
 
 // Local header files from project
 #include "pwm_gen.h"
+
+// Initialize struct space for global variable
+struct PWM _pwm = {
+    0, // phase accumulator
+    0, // phase increment, need to change this value later
+    {0} // lookup table for our sine wave
+};
 
 // PWM initialization
 void pwm_init(void) {
@@ -43,4 +51,16 @@ void pwm_init(void) {
     // enable PWM interrupt in the PWM peripheral
     PWMGenIntTrigEnable(PWM0_BASE, PWM_GEN_0, PWM_INT_CNT_ZERO);
     PWMIntEnable(PWM0_BASE, PWM_INT_GEN_0);
+}
+
+// PWM function generator ISR
+void pwm_ISR(void) {
+    // clear PWM interrupt flag
+    PWMGenIntClear(PWM0_BASE, PWM_GEN_0, PWM_INT_CNT_ZERO);
+
+    _pwm.gPhase += _pwm.gPhaseIncrement;
+
+    // write directly to the Compare B register that determines the duty cycle
+    PWM0_0_CMPB_R = 1 + _pwm.gPWMWaveformTable[_pwm.gPhase >> (32 - PWM_WAVEFORM_INDEX_BITS)];
+
 }
