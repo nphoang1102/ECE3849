@@ -19,15 +19,8 @@
 struct PWM {
     uint32_t gPhase;              // phase accumulator
     uint32_t gPhaseIncrement;     // phase increment for 20 kHz
-    uint8_t gPWMWaveformTable[PWM_WAVEFORM_TABLE_SIZE];
 };
 extern struct PWM _pwm;
-
-uint32_t gPhase = 0;              // phase accumulator
-uint32_t gPhaseIncrement = ?;     // phase increment for 20 kHz
-
-
-uint8_t gPWMWaveformTable[PWM_WAVEFORM_TABLE_SIZE] = {0};
 
 // Function prototypes
 void pwm_init(void); // Initialize the PWM generator pins

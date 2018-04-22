@@ -22,13 +22,16 @@
 
 // Local header files from project
 #include "pwm_gen.h"
+#include "pwm_table.h"
 
 // Initialize struct space for global variable
 struct PWM _pwm = {
     0, // phase accumulator
-    0, // phase increment, need to change this value later
-    {0} // lookup table for our sine wave
+    (1<<22), // phase increment, equal to 2^32/2^10
 };
+
+// Import global variable
+extern uint8_t gPWMWaveformTable[PWM_WAVEFORM_TABLE_SIZE];
 
 // PWM initialization
 void pwm_init(void) {
@@ -61,6 +64,6 @@ void pwm_ISR(void) {
     _pwm.gPhase += _pwm.gPhaseIncrement;
 
     // write directly to the Compare B register that determines the duty cycle
-    PWM0_0_CMPB_R = 1 + _pwm.gPWMWaveformTable[_pwm.gPhase >> (32 - PWM_WAVEFORM_INDEX_BITS)];
+    PWM0_0_CMPB_R = 1 + gPWMWaveformTable[_pwm.gPhase >> (32 - PWM_WAVEFORM_INDEX_BITS)];
 
 }
