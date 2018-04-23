@@ -31,7 +31,7 @@ struct Display _disp = {
     1, // default rising edge trigger
     1457, // default trigger point set to 0V
     3, // default volts per grid is 1V
-    20, // default time scale per grid is 20us
+    10, // default time scale per grid is 10us
     0.0, // CPU starts at no load
     1, // oscilloscope mode on startup
     {0}, // initialize the screen buffer before copying stuffs in here
