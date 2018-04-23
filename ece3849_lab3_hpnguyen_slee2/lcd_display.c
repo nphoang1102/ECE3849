@@ -29,7 +29,7 @@ const char * const gVoltageScaleStr[] = {
 // Initializing global space for variable storage
 struct Display _disp = {
     1, // default rising edge trigger
-    2048, // default trigger point set to 0V
+    1457, // default trigger point set to 0V
     3, // default volts per grid is 1V
     20, // default time scale per grid is 20us
     0.0, // CPU starts at no load

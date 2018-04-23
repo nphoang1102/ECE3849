@@ -27,7 +27,7 @@
 // Initialize struct space for global variable
 struct PWM _pwm = {
     0, // phase accumulator
-    (1<<22), // phase increment, equal to 2^32/2^10
+    (1<<23)*23, // phase increment, equal to 2^32/2^10*(465/20)
 };
 
 // Import global variable

@@ -28,7 +28,7 @@
 #define ADC_BUFFER_WRAP(i) ((i) & (ADC_BUFFER_SIZE - 1)) // index wrapping
 
 // Scaling definition
-#define ADC_OFFSET 2048
+#define ADC_OFFSET 1457
 #define VIN_RANGE 3.3f
 #define ADC_BITS 12
 
